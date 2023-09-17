@@ -9,9 +9,15 @@
             <ColumnDefinition Width="2*"/>
             <ColumnDefinition Width="7*"/>
         </Grid.ColumnDefinitions>
-            <!-- Group Dropdown -->
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Group Dropdown -->
             <Label Content="Group:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" />
-            <ComboBox x:Name="groupDropdown" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Margin="80,10,0,0" Grid.Column="1" Style="{DynamicResource MahApps.Styles.ComboBox}">
+            <ComboBox x:Name="groupDropdown" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="80,10,10,0" Grid.Column="1" Style="{DynamicResource MahApps.Styles.ComboBox}">
                 <ComboBoxItem Content="Bären" IsSelected="True"/>
                 <ComboBoxItem Content="Löwen"/>
                 <ComboBoxItem Content="Schnecken"/>
@@ -19,11 +25,11 @@
 
             <!-- Kid Name -->
         <Label Content="Kid Name:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,50,0,0" />
-        <TextBox x:Name="kidNameTextbox" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Margin="80,50,0,0" Grid.Column="1" />
+        <TextBox x:Name="kidNameTextbox" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="80,50,10,0" Grid.Column="1" />
 
         <!-- Report Month -->
         <Label Content="Report Month:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,90,0,0" />
-        <ComboBox x:Name="reportMonthDropdown" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Margin="80,90,0,0" Grid.Column="1">
+        <ComboBox x:Name="reportMonthDropdown" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="80,90,10,0" Grid.Column="1">
             <ComboBoxItem Content="Januar" IsSelected="True"/>
             <ComboBoxItem Content="Februar"/>
             <ComboBoxItem Content="März"/>
@@ -40,28 +46,28 @@
 
         <!-- Report Year -->
         <Label Content="Report Year:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,130,0,0" />
-        <TextBox x:Name="reportYearTextbox" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Margin="80,130,0,0" Grid.Column="1" />
+        <TextBox x:Name="reportYearTextbox" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="80,130,10,0" Grid.Column="1" />
 
         <!-- Protokollbogen Setup -->
         <Label Content="Protokollbogen:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,170,0,0" Grid.ColumnSpan="2" />
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="80,170,0,0" Grid.Column="1">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="80,170,0,0" Grid.Column="1">
             <Label Content="Manuell:" VerticalAlignment="Center"/>
 
             <!-- New ComboBox for manual month selection -->
-            <ComboBox x:Name="protokollbogenManuellDropdown" Width="83" Margin="5,0" VerticalAlignment="Center">
+            <ComboBox x:Name="protokollbogenManuellDropdown" Width="150" Margin="5,0" VerticalAlignment="Center">
                 <!-- Adding the valid months directly in the XAML -->
-                <ComboBoxItem Content="12" />
-                <ComboBoxItem Content="18" />
-                <ComboBoxItem Content="24" />
-                <ComboBoxItem Content="30" />
-                <ComboBoxItem Content="36" />
-                <ComboBoxItem Content="42" />
-                <ComboBoxItem Content="48" />
-                <ComboBoxItem Content="54" />
-                <ComboBoxItem Content="60" />
-                <ComboBoxItem Content="66" />
-                <ComboBoxItem Content="72" />
+                <ComboBoxItem Content="12 Monate Protokollbogen" />
+                <ComboBoxItem Content="18 Monate Protokollbogen" />
+                <ComboBoxItem Content="24 Monate Protokollbogen" />
+                <ComboBoxItem Content="30 Monate Protokollbogen" />
+                <ComboBoxItem Content="36 Monate Protokollbogen" />
+                <ComboBoxItem Content="42 Monate Protokollbogen" />
+                <ComboBoxItem Content="48 Monate Protokollbogen" />
+                <ComboBoxItem Content="54 Monate Protokollbogen" />
+                <ComboBoxItem Content="60 Monate Protokollbogen" />
+                <ComboBoxItem Content="66 Monate Protokollbogen" />
+                <ComboBoxItem Content="72 Monate Protokollbogen" />
 
                 <ComboBox.Style>
                     <Style TargetType="ComboBox">
