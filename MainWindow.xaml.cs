@@ -68,22 +68,26 @@ namespace Automatisiertes_Kopieren
         {
             if (protokollbogenAutoCheckbox.IsChecked == true)
             {
-                // Assuming you have a function CalculateChildAgeInMonths(dateOfBirth) that returns the age
-                DateTime childDOB = ...; // Fetch this value
-                _selectedProtokollbogenMonth = CalculateChildAgeInMonths(childDOB);
+                string group = groupDropdown.Text; // Assuming you have a dropdown for the group
+                string kidName = kidNameTextbox.Text; // Assuming you have a textbox for the kid's name
+                var nameParts = kidName.Split(' ');
+                string kidFirstName = nameParts[0];
+                string kidLastName = nameParts.Length > 1 ? nameParts[1] : "";
+
+                double? childAgeInMonths = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
+                if (!childAgeInMonths.HasValue)
+                {
+                    MessageBox.Show("Failed to extract the child's age from Excel.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                _selectedProtokollbogenMonth = (int)Math.Round(childAgeInMonths.Value); // Rounding to get the nearest whole month
             }
             else
             {
-                if (protokollbogenManuellDropdown.SelectedItem is ComboBoxItem comboBoxItem)
-                {
-                    _selectedProtokollbogenMonth = Convert.ToInt32(comboBoxItem.Content);
-                }
-                else
-                {
-                    _selectedProtokollbogenMonth = null;
-                }
+                _selectedProtokollbogenMonth = null;
             }
         }
+
         private void OnGenerateButtonClicked(object sender, RoutedEventArgs e)
         {
             // Input validation

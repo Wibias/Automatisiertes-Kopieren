@@ -97,10 +97,10 @@
 
 
         <!-- Select Home Folder Button -->
-        <Button Content="Heimordner Auswählen" HorizontalAlignment="Left" VerticalAlignment="Top" Width="160" Margin="10,280,0,0" Click="OnSelectHomeFolderClicked" Grid.ColumnSpan="2"/>
+        <Button Content="Heimordner Auswählen" HorizontalAlignment="Left" VerticalAlignment="Top" Width="160" Margin="10,280,0,0" Click="OnSelectHomeFolderButtonClicked" Grid.ColumnSpan="2"/>
 
         <!-- Generate Button -->
-        <Button Content="Kopieren" HorizontalAlignment="Right" VerticalAlignment="Top" Width="100" Margin="0,280,10,0" Click="OnGenerateClicked" Grid.Column="1"/>
+        <Button Content="Kopieren" HorizontalAlignment="Right" VerticalAlignment="Top" Width="100" Margin="0,280,10,0" Click="OnGenerateButtonClicked" Grid.Column="1"/>
 
         <!-- Output TextBox -->
         <TextBox x:Name="outputTextBox" Margin="10,320,10,10" IsReadOnly="True" TextWrapping="Wrap" Grid.ColumnSpan="2" />
