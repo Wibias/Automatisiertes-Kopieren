@@ -32,7 +32,7 @@ namespace Automatisiertes_Kopieren
                 }
             }
 
-            Serilog.Log.Warning($"No Protokollbogen found for month value: {monthsAndDays}");
+            Serilog.Log.Warning($"Kein Protokollbogen für folgenden Monatswert gefunden: {monthsAndDays}");
             return null;
         }
 
@@ -41,7 +41,7 @@ namespace Automatisiertes_Kopieren
             // Exit if no name is provided
             if (string.IsNullOrWhiteSpace(kidName))
             {
-                MessageBox.Show("Please provide a kid's name.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Bitte geben Sie den Namen eines Kindes an.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;  // You can choose how to handle this case.
             }
 
@@ -50,7 +50,7 @@ namespace Automatisiertes_Kopieren
             string groupPath = $@"{homeFolder}\Entwicklungsberichte\{groupFolder}\Aktuell";  // Use the passed in parameter
             if (!System.IO.Directory.Exists(groupPath))
             {
-                MessageBox.Show($"The path for the group folder {groupFolder} is not accessible. Please check the path and try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
 
@@ -58,7 +58,7 @@ namespace Automatisiertes_Kopieren
 
             if (!kidNameExists)
             {
-                MessageBox.Show($"The kid's name was not found in the group directory. Please provide a valid name.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
 

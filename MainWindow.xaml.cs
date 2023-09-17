@@ -60,7 +60,7 @@ namespace Automatisiertes_Kopieren
                 }
             }
 
-            Serilog.Log.Error($"Failed to extract a valid month value for {firstName} {lastName}.");
+            Serilog.Log.Error($"Es konnte kein gültiger Monatswert für {firstName} {lastName} extrahiert werden.");
             return null;
         }
 
@@ -111,7 +111,7 @@ namespace Automatisiertes_Kopieren
                 }
                 else
                 {
-                    MessageBox.Show("Please select a home folder first.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
             }
@@ -119,7 +119,7 @@ namespace Automatisiertes_Kopieren
             // Check if _homeFolder is null
             if (_homeFolder == null)
             {
-                MessageBox.Show("Home folder is not set.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Das Hauptverzeichnis ist nicht festgelegt.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -129,7 +129,7 @@ namespace Automatisiertes_Kopieren
             if (string.IsNullOrEmpty(validatedKidName))
             {
                 // Stop processing because the name wasn't valid or another error occurred.
-                MessageBox.Show("Invalid kid's name.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Ungültiger Kinder-Name", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -141,7 +141,7 @@ namespace Automatisiertes_Kopieren
                 parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
                 if (!parsedYear.HasValue)
                 {
-                    MessageBox.Show("Please provide a valid year for the report.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Bitte geben Sie ein gültiges Jahr für den Bericht an.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
             }
@@ -151,7 +151,7 @@ namespace Automatisiertes_Kopieren
                 return false;
             }
 
-            return true; // Only return true if all validations pass
+            return true;
         }
 
 
@@ -159,13 +159,29 @@ namespace Automatisiertes_Kopieren
         {
             // Extract input values
             string group = FileManager.StringUtilities.ConvertToTitleCase(groupDropdown.Text);
-            string kidName = FileManager.StringUtilities.ConvertToTitleCase(ValidationHelper.ValidateKidName(kidNameTextbox.Text, _homeFolder, groupDropdown.Text));
+            // Check if _homeFolder is null
+            if (_homeFolder == null)
+            {
+                MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Validate kid's name and check the result
+            string? validatedKidName = ValidationHelper.ValidateKidName(kidNameTextbox.Text, _homeFolder, groupDropdown.Text);
+            if (validatedKidName == null)
+            {
+                MessageBox.Show("Ungültiger Kinder-Name.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Convert the validated kid's name to title case
+            string kidName = FileManager.StringUtilities.ConvertToTitleCase(validatedKidName);
             string reportMonth = FileManager.StringUtilities.ConvertToTitleCase(reportMonthDropdown.Text);
             int? reportYearNullable = ValidationHelper.ValidateReportYearFromTextbox(reportYearTextbox.Text);
             if (!reportYearNullable.HasValue)
             {
                 // Handle the error here: for example, show a message to the user
-                MessageBox.Show("Invalid report year.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Ungültiges Jahr.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             int reportYear = reportYearNullable.Value;
@@ -176,8 +192,14 @@ namespace Automatisiertes_Kopieren
             string kidLastName = nameParts[1];
 
             // Define the source path for the files that need to be copied
-            string sourceFolderPath = _fileManager.GetSourceFolder(protokollbogen);
+            string sourceFolderPath = _homeFolder;
+            if (_fileManager == null)
+            {
+                MessageBox.Show("Der Dateimanager ist nicht initialisiert.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string targetFolderPath = _fileManager.GetTargetPath(group, kidName, reportMonth, reportYear.ToString());
+
 
             // Copy and rename files
             _fileManager.CopyFilesFromSourceToTarget(sourceFolderPath, targetFolderPath);
@@ -185,12 +207,17 @@ namespace Automatisiertes_Kopieren
             bool isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
             bool isVorschulentwicklungsberichtChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
             bool isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
+            if (!_selectedProtokollbogenMonth.HasValue)
+            {
+                MessageBox.Show("Protokollbogen Monat ist nicht gesetzt.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             int protokollNumber = _selectedProtokollbogenMonth.Value;
 
             _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulentwicklungsberichtChecked, isProtokollbogenChecked, protokollNumber);
 
             // Provide feedback to the user
-            MessageBox.Show("Files copied and renamed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Dateien erfolgreich kopiert und umbenannt.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private bool IsHomeFolderSelected()
@@ -210,14 +237,14 @@ namespace Automatisiertes_Kopieren
 
             if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(" "))
             {
-                MessageBox.Show("Please provide a valid name with both first and last names.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
             // Consolidated the field checks
             if (string.IsNullOrWhiteSpace(selectedGroup) || string.IsNullOrWhiteSpace(selectedReportMonth) || string.IsNullOrWhiteSpace(selectedReportYear))
             {
-                MessageBox.Show("Please fill in all required fields.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Bitte füllen Sie alle geforderten Felder aus.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -228,7 +255,7 @@ namespace Automatisiertes_Kopieren
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.Description = "Select the Script Directory";
+                dialog.Description = "Wählen Sie das Hauptverzeichnis aus";
                 dialog.ShowNewFolderButton = true;
 
                 DialogResult result = dialog.ShowDialog();
@@ -236,7 +263,7 @@ namespace Automatisiertes_Kopieren
                 {
                     _homeFolder = dialog.SelectedPath;
                     InitializeFileManager();
-                    MessageBox.Show($"Selected script directory: {_homeFolder}", "Directory Selected", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"Ausgewähltes Hauptverzeichnis: {_homeFolder}", "Hauptverzeichnis ausgewählt", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
@@ -253,7 +280,7 @@ namespace Automatisiertes_Kopieren
             }
             else
             {
-                MessageBox.Show("Please select a home folder first.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

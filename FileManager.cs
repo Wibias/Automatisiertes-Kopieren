@@ -22,7 +22,7 @@ namespace Automatisiertes_Kopieren
 
             if (string.IsNullOrEmpty(_homeFolder))
             {
-                throw new InvalidOperationException("Home folder is not set.");
+                throw new InvalidOperationException("Das Hauptverzeichnis ist nicht festgelegt.");
             }
             return $@"{_homeFolder}\Entwicklungsberichte\{group}\{kidName}\{reportYear}\{reportMonth}";
         }
@@ -70,7 +70,7 @@ namespace Automatisiertes_Kopieren
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error copying file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error beim Kopieren der Datei: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -107,15 +107,6 @@ namespace Automatisiertes_Kopieren
                 Umlaute,
                 Underscore
             }
-        }
-
-        public string? GetSourceFolder(string protokollbogen)
-        {
-            string? homeFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
-            // ... Rest of the logic ...
-
-            return null;
         }
 
         public void SafeCopyFile(string sourceFile, string destFile)
