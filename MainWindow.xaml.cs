@@ -8,6 +8,7 @@ using ClosedXML.Excel;
 using MessageBox = System.Windows.MessageBox;
 using MahApps.Metro.Controls;
 using System.Windows.Controls;
+using System.IO;
 
 namespace Automatisiertes_Kopieren
 {
@@ -37,39 +38,53 @@ namespace Automatisiertes_Kopieren
             string shortGroupName = group.Split(' ')[0];
             string filePath = $@"{_homeFolder}\Entwicklungsberichte\Entwicklungsberichte\{group}\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
 
-            using (var workbook = new XLWorkbook(filePath))
+            try
             {
-                var worksheet = workbook.Worksheet("Monatsrechner");
-
-                for (int row = 7; row <= 31; row++)
+                using (var workbook = new XLWorkbook(filePath))
                 {
-                    var lastNameCell = worksheet.Cell(row, 3).Value.ToString().Trim();
-                    var firstNameCell = worksheet.Cell(row, 4).Value.ToString().Trim();
+                    var worksheet = workbook.Worksheet("Monatsrechner");
 
-                    if (lastNameCell != lastName || firstNameCell != firstName)
+                    for (int row = 7; row <= 31; row++)
                     {
-                        continue;  // Skip this iteration if names don't match
-                    }
+                        var lastNameCell = worksheet.Cell(row, 3).Value.ToString().Trim();
+                        var firstNameCell = worksheet.Cell(row, 4).Value.ToString().Trim();
 
-                    var monthsValueRaw = worksheet.Cell(row, 6).Value.ToString();
+                        if (lastNameCell != lastName || firstNameCell != firstName)
+                        {
+                            continue;  // Skip this iteration if names don't match
+                        }
 
-                    if (double.TryParse(monthsValueRaw.Replace(",", "."), out double parsedValue))
-                    {
-                        return parsedValue;
+                        var monthsValueRaw = worksheet.Cell(row, 6).Value.ToString();
+
+                        if (double.TryParse(monthsValueRaw.Replace(",", "."), out double parsedValue))
+                        {
+                            return parsedValue;
+                        }
                     }
                 }
+            }
+            catch (FileNotFoundException)
+            {
+                MessageBox.Show("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Serilog.Log.Error($"Die Datei {filePath} wurde nicht gefunden.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ein Fehler ist aufgetreten: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Serilog.Log.Error(ex, "Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten.");
             }
 
             Serilog.Log.Error($"Es konnte kein gültiger Monatswert für {firstName} {lastName} extrahiert werden.");
             return null;
         }
 
+
         private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
         {
             if (protokollbogenAutoCheckbox.IsChecked == true)
             {
-                string group = groupDropdown.Text; // Assuming you have a dropdown for the group
-                string kidName = kidNameTextbox.Text; // Assuming you have a textbox for the kid's name
+                string group = groupDropdown.Text;
+                string kidName = kidNameTextbox.Text;
                 var nameParts = kidName.Split(' ');
                 string kidFirstName = nameParts[0];
                 string kidLastName = nameParts.Length > 1 ? nameParts[1] : "";
@@ -77,7 +92,7 @@ namespace Automatisiertes_Kopieren
                 double? childAgeInMonths = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
                 if (!childAgeInMonths.HasValue)
                 {
-                    MessageBox.Show("Failed to extract the child's age from Excel.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
                 _selectedProtokollbogenMonth = (int)Math.Round(childAgeInMonths.Value); // Rounding to get the nearest whole month
