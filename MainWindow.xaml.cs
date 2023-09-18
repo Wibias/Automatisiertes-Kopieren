@@ -1,14 +1,12 @@
-﻿using System.Windows;
-using System.Windows.Forms;
-using System.Linq;
-using System;
-using System.Collections.Generic;
-using Serilog;
-using ClosedXML.Excel;
-using MessageBox = System.Windows.MessageBox;
+﻿using ClosedXML.Excel;
 using MahApps.Metro.Controls;
-using System.Windows.Controls;
+using Serilog;
+using System;
 using System.IO;
+using System.Windows;
+using System.Windows.Forms;
+using static Automatisiertes_Kopieren.FileManager.StringUtilities;
+using MessageBox = System.Windows.MessageBox;
 
 namespace Automatisiertes_Kopieren
 {
@@ -25,18 +23,24 @@ namespace Automatisiertes_Kopieren
         public MainWindow()
         {
             // Initialize Serilog
-            Serilog.Log.Logger = new LoggerConfiguration()
+            Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
+                .WriteTo.File("log-.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
             InitializeComponent();
             protokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
             protokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
         }
 
-        private double? ExtractMonthsFromExcel(string group, string lastName, string firstName)
+        private (double? months, string? error) ExtractMonthsFromExcel(string group, string lastName, string firstName)
         {
-            string shortGroupName = group.Split(' ')[0];
-            string filePath = $@"{_homeFolder}\Entwicklungsberichte\Entwicklungsberichte\{group}\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
+            if (string.IsNullOrEmpty(_homeFolder))
+            {
+                return (null, "HomeFolderNotSet");
+            }
+            string convertedGroupName = ConvertSpecialCharacters(group, ConversionType.Umlaute);
+            string shortGroupName = convertedGroupName.Split(' ')[0];
+            string filePath = $@"{_homeFolder}\Entwicklungsberichte\{convertedGroupName}-Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
 
             try
             {
@@ -58,30 +62,46 @@ namespace Automatisiertes_Kopieren
 
                         if (double.TryParse(monthsValueRaw.Replace(",", "."), out double parsedValue))
                         {
-                            return parsedValue;
+                            return (parsedValue, null); // Return the parsed value and null for the error
                         }
                     }
                 }
             }
             catch (FileNotFoundException)
             {
-                MessageBox.Show("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Serilog.Log.Error($"Die Datei {filePath} wurde nicht gefunden.");
+                Log.Error($"Die Datei {filePath} wurde nicht gefunden.");
+                return (null, "FileNotFound");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ein Fehler ist aufgetreten: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Serilog.Log.Error(ex, "Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten.");
+                Log.Error(ex, "Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten.");
+                return (null, "UnexpectedError");
             }
 
-            Serilog.Log.Error($"Es konnte kein gültiger Monatswert für {firstName} {lastName} extrahiert werden.");
-            return null;
+            Log.Error($"Es konnte kein gültiger Monatswert für {firstName} {lastName} extrahiert werden.");
+            return (null, "ExtractionError");
         }
+
+
 
 
         private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
         {
-            if (protokollbogenAutoCheckbox.IsChecked == true)
+            if (e.RoutedEvent.Name == "Checked")
+            {
+                // Handle the Checked logic here
+                HandleProtokollbogenAutoCheckbox(true);
+            }
+            else if (e.RoutedEvent.Name == "Unchecked")
+            {
+                // Handle the Unchecked logic here
+                HandleProtokollbogenAutoCheckbox(false);
+            }
+        }
+
+        private void HandleProtokollbogenAutoCheckbox(bool isChecked)
+        {
+            if (isChecked)
             {
                 string group = groupDropdown.Text;
                 string kidName = kidNameTextbox.Text;
@@ -89,19 +109,30 @@ namespace Automatisiertes_Kopieren
                 string kidFirstName = nameParts[0];
                 string kidLastName = nameParts.Length > 1 ? nameParts[1] : "";
 
-                double? childAgeInMonths = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
-                if (!childAgeInMonths.HasValue)
+                var result = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
+                if (result.error == "HomeFolderNotSet")
+                {
+                    MessageBox.Show("Bitte setzen Sie zuerst den Heimordner.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                else if (result.error == "FileNotFound")
+                {
+                    MessageBox.Show("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                else if (!result.months.HasValue)
                 {
                     MessageBox.Show("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                _selectedProtokollbogenMonth = (int)Math.Round(childAgeInMonths.Value); // Rounding to get the nearest whole month
+                _selectedProtokollbogenMonth = (int)Math.Round(result.months.Value); // Rounding to get the nearest whole month
             }
             else
             {
                 _selectedProtokollbogenMonth = null;
             }
         }
+
 
         private void OnGenerateButtonClicked(object sender, RoutedEventArgs e)
         {
@@ -154,10 +185,9 @@ namespace Automatisiertes_Kopieren
 
             // Validate report year
             string reportYearText = reportYearTextbox.Text;
-            int? parsedYear = null;
             try
             {
-                parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
+                int? parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
                 if (!parsedYear.HasValue)
                 {
                     MessageBox.Show("Bitte geben Sie ein gültiges Jahr für den Bericht an.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -272,13 +302,13 @@ namespace Automatisiertes_Kopieren
 
         private void SelectHomeFolder()
         {
-            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
+            var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
             {
                 dialog.Description = "Wählen Sie das Hauptverzeichnis aus";
-                dialog.ShowNewFolderButton = true;
+                dialog.UseDescriptionForTitle = true; // This will make the description appear as title
 
-                DialogResult result = dialog.ShowDialog();
-                if (result == System.Windows.Forms.DialogResult.OK)
+                var result = dialog.ShowDialog();
+                if (result.HasValue && result.Value)
                 {
                     _homeFolder = dialog.SelectedPath;
                     InitializeFileManager();
@@ -305,7 +335,7 @@ namespace Automatisiertes_Kopieren
 
         private void MainWindow_Closed(object sender, EventArgs e)
         {
-            Serilog.Log.CloseAndFlush();
+            Log.CloseAndFlush();
         }
 
     }
