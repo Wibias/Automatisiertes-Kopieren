@@ -19,6 +19,7 @@ namespace Automatisiertes_Kopieren
         private string? _homeFolder;
         private FileManager? _fileManager;
         private int? _selectedProtokollbogenMonth;
+        private bool _isHandlingCheckboxEvent = false;
 
         public MainWindow()
         {
@@ -82,11 +83,12 @@ namespace Automatisiertes_Kopieren
             return (null, "ExtractionError");
         }
 
-
-
-
         private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
         {
+            if (_isHandlingCheckboxEvent) return; // Exit if already handling the event
+
+            _isHandlingCheckboxEvent = true; // Set the flag to true
+
             if (e.RoutedEvent.Name == "Checked")
             {
                 // Handle the Checked logic here
@@ -97,6 +99,8 @@ namespace Automatisiertes_Kopieren
                 // Handle the Unchecked logic here
                 HandleProtokollbogenAutoCheckbox(false);
             }
+
+            _isHandlingCheckboxEvent = false; // Reset the flag
         }
 
         private void HandleProtokollbogenAutoCheckbox(bool isChecked)
@@ -113,16 +117,19 @@ namespace Automatisiertes_Kopieren
                 if (result.error == "HomeFolderNotSet")
                 {
                     MessageBox.Show("Bitte setzen Sie zuerst den Heimordner.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    protokollbogenAutoCheckbox.IsChecked = false; // Uncheck the checkbox to prevent further processing
                     return;
                 }
                 else if (result.error == "FileNotFound")
                 {
                     MessageBox.Show("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    protokollbogenAutoCheckbox.IsChecked = false; // Uncheck the checkbox to prevent further processing
                     return;
                 }
                 else if (!result.months.HasValue)
                 {
                     MessageBox.Show("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    protokollbogenAutoCheckbox.IsChecked = false; // Uncheck the checkbox to prevent further processing
                     return;
                 }
                 _selectedProtokollbogenMonth = (int)Math.Round(result.months.Value); // Rounding to get the nearest whole month
@@ -132,7 +139,6 @@ namespace Automatisiertes_Kopieren
                 _selectedProtokollbogenMonth = null;
             }
         }
-
 
         private void OnGenerateButtonClicked(object sender, RoutedEventArgs e)
         {
@@ -146,7 +152,6 @@ namespace Automatisiertes_Kopieren
             // Perform the required file operations if input is valid
             PerformFileOperations();
         }
-
 
         private bool IsValidInput()
         {
@@ -202,7 +207,6 @@ namespace Automatisiertes_Kopieren
 
             return true;
         }
-
 
         private void PerformFileOperations()
         {
@@ -268,7 +272,6 @@ namespace Automatisiertes_Kopieren
             // Provide feedback to the user
             MessageBox.Show("Dateien erfolgreich kopiert und umbenannt.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-
         private bool IsHomeFolderSelected()
         {
             if (!string.IsNullOrEmpty(_homeFolder))
@@ -277,6 +280,7 @@ namespace Automatisiertes_Kopieren
             SelectHomeFolder();
             return !string.IsNullOrEmpty(_homeFolder);
         }
+
         private bool AreAllRequiredFieldsFilled()
         {
             string selectedGroup = groupDropdown.Text;
