@@ -12,9 +12,6 @@ namespace Automatisiertes_Kopieren
 {
     public partial class MainWindow : MetroWindow
     {
-        private const int StartRow = 7;
-        private const int EndRow = 31;
-        private const string WorksheetName = "Monatsrechner";
 
         private string? _homeFolder;
         private FileManager? _fileManager;
@@ -41,7 +38,7 @@ namespace Automatisiertes_Kopieren
             }
             string convertedGroupName = ConvertSpecialCharacters(group, ConversionType.Umlaute);
             string shortGroupName = convertedGroupName.Split(' ')[0];
-            string filePath = $@"{_homeFolder}\Entwicklungsberichte\{convertedGroupName}-Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
+            string filePath = $@"{_homeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
 
             try
             {
@@ -101,6 +98,7 @@ namespace Automatisiertes_Kopieren
             }
 
             _isHandlingCheckboxEvent = false; // Reset the flag
+            e.Handled = true;
         }
 
         private void HandleProtokollbogenAutoCheckbox(bool isChecked)

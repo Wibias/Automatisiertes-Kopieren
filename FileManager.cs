@@ -17,6 +17,8 @@ namespace Automatisiertes_Kopieren
         public string GetTargetPath(string group, string kidName, string reportMonth, string reportYear)
         {
             group = StringUtilities.ConvertToTitleCase(group);
+            group = StringUtilities.ConvertSpecialCharacters(group, StringUtilities.ConversionType.Umlaute); // Convert special characters for the group name
+
             kidName = StringUtilities.ConvertToTitleCase(kidName);
             reportMonth = StringUtilities.ConvertToTitleCase(reportMonth);
 
@@ -24,8 +26,9 @@ namespace Automatisiertes_Kopieren
             {
                 throw new InvalidOperationException("Das Hauptverzeichnis ist nicht festgelegt.");
             }
-            return $@"{_homeFolder}\Entwicklungsberichte\{group}\{kidName}\{reportYear}\{reportMonth}";
+            return $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\{kidName}";
         }
+
 
         public void RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, int protokollNumber)
         {
