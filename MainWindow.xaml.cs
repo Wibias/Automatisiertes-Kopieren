@@ -3,6 +3,7 @@ using MahApps.Metro.Controls;
 using Serilog;
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Forms;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
@@ -206,10 +207,17 @@ namespace Automatisiertes_Kopieren
             return true;
         }
 
+        private string ExtractProtokollNumber(string fileName)
+        {
+            var match = Regex.Match(fileName, @"Kind_Protokollbogen_(\d+)_Monate\.pdf");
+            return match.Success ? match.Groups[1].Value + "_Monate" : string.Empty;
+        }
+
         private void PerformFileOperations()
         {
             string sourceFolderPath = string.Empty;
             (string directoryPath, string fileName)? protokollbogenData = null;
+            string numericProtokollNumber = string.Empty;
 
             // Extract input values
             string group = FileManager.StringUtilities.ConvertToTitleCase(groupDropdown.Text);
@@ -285,22 +293,23 @@ namespace Automatisiertes_Kopieren
             // Copy and rename files
             if (protokollbogenData.HasValue && !string.IsNullOrEmpty(sourceFolderPath))  // Ensure both are not null/empty before using them
             {
-                _fileManager.CopyFilesFromSourceToTarget(Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName) + ".pdf", targetFolderPath, protokollbogenData.Value.fileName + ".pdf");
-
+                _fileManager.CopyFilesFromSourceToTarget(Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName + ".pdf"), targetFolderPath, protokollbogenData.Value.fileName + ".pdf");
             }
+            if (protokollbogenData.HasValue)
+            {
+                numericProtokollNumber = ExtractProtokollNumber(protokollbogenData.Value.fileName + ".pdf");
 
+                if (string.IsNullOrEmpty(numericProtokollNumber))
+                {
+                    MessageBox.Show("Fehler beim Extrahieren der Protokollnummer.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
             bool isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
             bool isVorschulentwicklungsberichtChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
             bool isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
-            if (!_selectedProtokollbogenMonth.HasValue)
-            {
-                MessageBox.Show("Protokollbogen Monat ist nicht gesetzt.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            int protokollNumber = _selectedProtokollbogenMonth.Value;
 
-            _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulentwicklungsberichtChecked, isProtokollbogenChecked, protokollNumber);
-
+            _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulentwicklungsberichtChecked, isProtokollbogenChecked, numericProtokollNumber);
             // Provide feedback to the user
             MessageBox.Show("Dateien erfolgreich kopiert und umbenannt.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }

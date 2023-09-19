@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace Automatisiertes_Kopieren
@@ -29,13 +31,24 @@ namespace Automatisiertes_Kopieren
         }
 
 
-        public void RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, int protokollNumber)
+        public void RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, string protokollNumber)
         {
             kidName = StringUtilities.ConvertToTitleCase(kidName);
             kidName = StringUtilities.ConvertSpecialCharacters(kidName, StringUtilities.ConversionType.Umlaute, StringUtilities.ConversionType.Underscore);
 
             reportMonth = StringUtilities.ConvertToTitleCase(reportMonth);
             reportMonth = StringUtilities.ConvertSpecialCharacters(reportMonth, StringUtilities.ConversionType.Umlaute, StringUtilities.ConversionType.Underscore);
+            int numericProtokollNumber;
+            if (int.TryParse(Regex.Match(protokollNumber, @"\d+").Value, out numericProtokollNumber))
+            {
+                // Now you can use numericProtokollNumber as an integer.
+            }
+            else
+            {
+                // Handle the error if the number couldn't be extracted.
+                Log.Error($"Failed to extract numeric value from protokollNumber: {protokollNumber}");
+                return; // or throw an exception, or handle it in another appropriate way.
+            }
 
             string[] files = Directory.GetFiles(targetFolderPath);
 
@@ -58,7 +71,7 @@ namespace Automatisiertes_Kopieren
 
                 if (fileName.StartsWith("Kind_Protokollbogen_", StringComparison.OrdinalIgnoreCase) && isProtokollbogenChecked)
                 {
-                    string newFileName = $"Kind_Protokollbogen_{protokollNumber}_Monate{fileExtension}";
+                    string newFileName = $"{kidName}_{protokollNumber}_Monate_{reportMonth}_{reportYear}{fileExtension}";
                     File.Move(file, Path.Combine(targetFolderPath, newFileName));
                 }
             }
@@ -111,14 +124,13 @@ namespace Automatisiertes_Kopieren
             }
         }
 
-        public void CopyFilesFromSourceToTarget(string sourceFolderPath, string targetFolderPath, string protokollbogenFileName)
+        public void CopyFilesFromSourceToTarget(string sourceFile, string targetFolderPath, string protokollbogenFileName)
         {
             if (!Directory.Exists(targetFolderPath))
             {
                 Directory.CreateDirectory(targetFolderPath);
             }
 
-            string sourceFile = Path.Combine(sourceFolderPath, protokollbogenFileName);
             Serilog.Log.Information($"Trying to access file at: {sourceFile}");
             if (File.Exists(sourceFile))
             {
