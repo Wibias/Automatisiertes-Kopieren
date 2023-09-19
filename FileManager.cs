@@ -119,6 +119,7 @@ namespace Automatisiertes_Kopieren
             }
 
             string sourceFile = Path.Combine(sourceFolderPath, protokollbogenFileName);
+            Serilog.Log.Information($"Trying to access file at: {sourceFile}");
             if (File.Exists(sourceFile))
             {
                 try

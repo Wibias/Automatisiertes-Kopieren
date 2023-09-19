@@ -9,29 +9,30 @@ namespace Automatisiertes_Kopieren
 {
     public static class ValidationHelper
     {
-        public static string? DetermineProtokollbogen(double monthsAndDays)
+        public static (string directoryPath, string fileName)? DetermineProtokollbogen(double monthsAndDays)
         {
-            Dictionary<double, string> protokollbogenMap = new Dictionary<double, string>
-            {
-        { 10.15, "Kind_Protokollbogen_12_Monate" },
-        { 16.15, "Kind_Protokollbogen_18_Monate" },
-        { 22.15, "Kind_Protokollbogen_24_Monate" },
-        { 27.15, "Kind_Protokollbogen_30_Monate" },
-        { 33.15, "Kind_Protokollbogen_36_Monate" },
-        { 39.15, "Kind_Protokollbogen_42_Monate" },
-        { 45.15, "Kind_Protokollbogen_48_Monate" },
-        { 51.15, "Kind_Protokollbogen_54_Monate" },
-        { 57.15, "Kind_Protokollbogen_60_Monate" },
-        { 63.15, "Kind_Protokollbogen_66_Monate" },
-        { 69.15, "Kind_Protokollbogen_72_Monate" },
+            Dictionary<double, (string directoryPath, string fileName)> protokollbogenMap = new Dictionary<double, (string, string)>
+    {
+        { 10.15, ("\\Entwicklungsboegen\\Krippe-Protokollboegen", "Kind_Protokollbogen_12_Monate") },
+        { 16.15, ("\\Entwicklungsboegen\\Krippe-Protokollboegen", "Kind_Protokollbogen_16_Monate") },
+        { 22.15, ("\\Entwicklungsboegen\\Krippe-Protokollboegen", "Kind_Protokollbogen_24_Monate") },
+        { 27.15, ("\\Entwicklungsboegen\\Krippe-Protokollboegen", "Kind_Protokollbogen_30_Monate") },
+        { 33.15, ("\\Entwicklungsboegen\\Krippe-Protokollboegen", "Kind_Protokollbogen_36_Monate") },
+        { 39.15, ("\\Entwicklungsboegen\\Ele-Protokollboegen", "Kind_Protokollbogen_42_Monate") },
+        { 45.15, ("\\Entwicklungsboegen\\Ele-Protokollboegen", "Kind_Protokollbogen_48_Monate") },
+        { 51.15, ("\\Entwicklungsboegen\\Ele-Protokollboegen", "Kind_Protokollbogen_54_Monate") },
+        { 57.15, ("\\Entwicklungsboegen\\Ele-Protokollboegen", "Kind_Protokollbogen_60_Monate") },
+        { 63.15, ("\\Entwicklungsboegen\\Ele-Protokollboegen", "Kind_Protokollbogen_66_Monate") },
+        { 69.15, ("\\Entwicklungsboegen\\Ele-Protokollboegen", "Kind_Protokollbogen_72_Monate") },
     };
 
             foreach (var entry in protokollbogenMap.OrderByDescending(kvp => kvp.Key))
             {
                 if (monthsAndDays >= entry.Key)
                 {
-                    return entry.Value;
+                    return (directoryPath, fileName); // Replace directoryPath and fileName with actual values
                 }
+
             }
 
             Serilog.Log.Warning($"Kein Protokollbogen für folgenden Monatswert gefunden: {monthsAndDays}");

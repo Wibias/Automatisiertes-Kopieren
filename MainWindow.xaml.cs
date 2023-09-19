@@ -209,7 +209,7 @@ namespace Automatisiertes_Kopieren
         private void PerformFileOperations()
         {
             string sourceFolderPath;
-            string? protokollbogenFileName = null;
+            (string directoryPath, string fileName)? protokollbogenData = null;
 
             // Extract input values
             string group = FileManager.StringUtilities.ConvertToTitleCase(groupDropdown.Text);
@@ -247,20 +247,23 @@ namespace Automatisiertes_Kopieren
 
             // Extract months from Excel
             var (months, error) = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
+            // ... (rest of the code remains unchanged)
+
             if (months.HasValue)
             {
-                protokollbogenFileName = ValidationHelper.DetermineProtokollbogen(months.Value);
-                if (!string.IsNullOrEmpty(protokollbogenFileName))
+                var protokollbogenResult = ValidationHelper.DetermineProtokollbogen(months.Value);
+                if (protokollbogenResult.HasValue)
                 {
-                    // Assign value to sourceFolderPath here
-                    sourceFolderPath = Path.Combine(_homeFolder, protokollbogenFileName + ".pdf");
+                    string directoryPath = protokollbogenResult.Value.directoryPath;
+                    protokollbogenFileName = protokollbogenResult.Value.fileName;
+
+                    // Construct the sourceFolderPath
+                    sourceFolderPath = Path.Combine(_homeFolder, directoryPath, protokollbogenFileName + ".pdf");
                 }
-                else
-                {
-                    MessageBox.Show("Kein passender Protokollbogen gefunden.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
+                // ... (rest of the code remains unchanged)
             }
+
+            // ... (rest of the code remains unchanged)
             else
             {
                 MessageBox.Show("Fehler beim Extrahieren der Monate aus Excel.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -275,9 +278,9 @@ namespace Automatisiertes_Kopieren
             string targetFolderPath = _fileManager.GetTargetPath(group, kidName, reportYear.ToString());
 
             // Copy and rename files
-            if (protokollbogenFileName != null)  // Ensure it's not null before using it
+            if (protokollbogenData.HasValue)  // Ensure it's not null before using it
             {
-                _fileManager.CopyFilesFromSourceToTarget(sourceFolderPath, targetFolderPath, protokollbogenFileName + ".pdf");
+                _fileManager.CopyFilesFromSourceToTarget(sourceFolderPath, targetFolderPath, protokollbogenData.Value.fileName + ".pdf");
             }
 
             bool isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
