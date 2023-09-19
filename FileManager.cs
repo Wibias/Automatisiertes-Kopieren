@@ -14,19 +14,18 @@ namespace Automatisiertes_Kopieren
             _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
         }
 
-        public string GetTargetPath(string group, string kidName, string reportMonth, string reportYear)
+        public string GetTargetPath(string group, string kidName, string reportYear)
         {
             group = StringUtilities.ConvertToTitleCase(group);
             group = StringUtilities.ConvertSpecialCharacters(group, StringUtilities.ConversionType.Umlaute); // Convert special characters for the group name
 
             kidName = StringUtilities.ConvertToTitleCase(kidName);
-            reportMonth = StringUtilities.ConvertToTitleCase(reportMonth);
 
             if (string.IsNullOrEmpty(_homeFolder))
             {
                 throw new InvalidOperationException("Das Hauptverzeichnis ist nicht festgelegt.");
             }
-            return $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\{kidName}";
+            return $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\Aktuell\{kidName}\{reportYear}";
         }
 
 
@@ -112,6 +111,31 @@ namespace Automatisiertes_Kopieren
             }
         }
 
+        public void CopyFilesFromSourceToTarget(string sourceFolderPath, string targetFolderPath, string protokollbogenFileName)
+        {
+            if (!Directory.Exists(targetFolderPath))
+            {
+                Directory.CreateDirectory(targetFolderPath);
+            }
+
+            string sourceFile = Path.Combine(sourceFolderPath, protokollbogenFileName);
+            if (File.Exists(sourceFile))
+            {
+                try
+                {
+                    SafeCopyFile(sourceFile, Path.Combine(targetFolderPath, protokollbogenFileName));
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Error($"Error copying file. Source: {sourceFile}, Destination: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Error: {ex.Message}");
+                }
+            }
+            else
+            {
+                Serilog.Log.Warning($"File {protokollbogenFileName} not found in source folder.");
+            }
+        }
+
         public void SafeCopyFile(string sourceFile, string destFile)
         {
             try
@@ -146,18 +170,5 @@ namespace Automatisiertes_Kopieren
             }
         }
 
-        public void CopyFilesFromSourceToTarget(string sourceFolderPath, string targetFolderPath)
-        {
-            if (!Directory.Exists(targetFolderPath))
-            {
-                Directory.CreateDirectory(targetFolderPath);
-            }
-
-            foreach (string file in Directory.GetFiles(sourceFolderPath))
-            {
-                string fileName = Path.GetFileName(file);
-                SafeCopyFile(file, Path.Combine(targetFolderPath, fileName));
-            }
-        }
     }
 }
