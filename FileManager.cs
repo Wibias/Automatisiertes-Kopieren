@@ -19,7 +19,7 @@ namespace Automatisiertes_Kopieren
         public string GetTargetPath(string group, string kidName, string reportYear)
         {
             group = StringUtilities.ConvertToTitleCase(group);
-            group = StringUtilities.ConvertSpecialCharacters(group, StringUtilities.ConversionType.Umlaute); // Convert special characters for the group name
+            group = StringUtilities.ConvertSpecialCharacters(group, StringUtilities.ConversionType.Umlaute);
 
             kidName = StringUtilities.ConvertToTitleCase(kidName);
 
@@ -28,6 +28,39 @@ namespace Automatisiertes_Kopieren
                 throw new InvalidOperationException("Das Hauptverzeichnis ist nicht festgelegt.");
             }
             return $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\Aktuell\{kidName}\{reportYear}";
+        }
+
+        public void SafeRenameFile(string sourceFile, string destFile)
+        {
+            try
+            {
+                // Check if destination file exists
+                if (File.Exists(destFile))
+                {
+                    // Prompt user to overwrite or not
+                    MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "File exists", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        // Backup existing file with timestamp
+                        string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
+                        File.Move(destFile, backupFilename);
+                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Die Datei wurde nicht umbenannt.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                }
+
+                // Rename source file to destination
+                File.Move(sourceFile, destFile);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Fehler beim Umbenennen der Datei: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
 
@@ -57,22 +90,22 @@ namespace Automatisiertes_Kopieren
                 string fileName = Path.GetFileNameWithoutExtension(file);
                 string fileExtension = Path.GetExtension(file);
 
-                if (fileName.Equals("Allgemeiner Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isAllgemeinerChecked)
+                if (fileName.Equals("Allgemeiner-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isAllgemeinerChecked)
                 {
-                    string newFileName = $"{kidName}_Entwicklungsbericht_Allgemein_{reportMonth}_{reportYear}{fileExtension}";
-                    File.Move(file, Path.Combine(targetFolderPath, newFileName));
+                    string newFileName = $"{kidName}_Allgemeiner-Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
+                    SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
 
-                if (fileName.Equals("Vorschulentwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isVorschulChecked)
+                if (fileName.Equals("Vorschul-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isVorschulChecked)
                 {
-                    string newFileName = $"{kidName}_Vorschulentwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
-                    File.Move(file, Path.Combine(targetFolderPath, newFileName));
+                    string newFileName = $"{kidName}_Vorschul-Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
+                    SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
 
                 if (fileName.StartsWith("Kind_Protokollbogen_", StringComparison.OrdinalIgnoreCase) && isProtokollbogenChecked)
                 {
                     string newFileName = $"{kidName}_{protokollNumber}_Monate_{reportMonth}_{reportYear}{fileExtension}";
-                    File.Move(file, Path.Combine(targetFolderPath, newFileName));
+                    SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
             }
         }
@@ -153,15 +186,12 @@ namespace Automatisiertes_Kopieren
         {
             try
             {
-                // Check if destination file exists
                 if (File.Exists(destFile))
                 {
-                    // Prompt user to overwrite or not
                     MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "File exists", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        // Backup existing file with timestamp
                         string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                         File.Move(destFile, backupFilename);
                         MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -173,7 +203,6 @@ namespace Automatisiertes_Kopieren
                     }
                 }
 
-                // Copy source file to destination
                 File.Copy(sourceFile, destFile, overwrite: true);
                 MessageBox.Show($"Die Datei wurde erfolgreich kopiert: {destFile}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }

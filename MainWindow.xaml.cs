@@ -219,16 +219,13 @@ namespace Automatisiertes_Kopieren
             (string directoryPath, string fileName)? protokollbogenData = null;
             string numericProtokollNumber = string.Empty;
 
-            // Extract input values
             string group = FileManager.StringUtilities.ConvertToTitleCase(groupDropdown.Text);
-            // Check if _homeFolder is null
             if (_homeFolder == null)
             {
                 MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // Validate kid's name and check the result
             string? validatedKidName = ValidationHelper.ValidateKidName(kidNameTextbox.Text, _homeFolder, groupDropdown.Text);
             if (validatedKidName == null)
             {
@@ -236,19 +233,16 @@ namespace Automatisiertes_Kopieren
                 return;
             }
 
-            // Convert the validated kid's name to title case
             string kidName = FileManager.StringUtilities.ConvertToTitleCase(validatedKidName);
             string reportMonth = FileManager.StringUtilities.ConvertToTitleCase(reportMonthDropdown.Text);
             int? reportYearNullable = ValidationHelper.ValidateReportYearFromTextbox(reportYearTextbox.Text);
             if (!reportYearNullable.HasValue)
             {
-                // Handle the error here: for example, show a message to the user
                 MessageBox.Show("Ungültiges Jahr.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             int reportYear = reportYearNullable.Value;
 
-            // Extract first and last names from the kid's name
             var nameParts = kidName.Split(' ');
             string kidFirstName = nameParts[0];
             string kidLastName = nameParts[1];
@@ -261,7 +255,7 @@ namespace Automatisiertes_Kopieren
                 var protokollbogenResult = ValidationHelper.DetermineProtokollbogen(months.Value);
                 if (protokollbogenResult.HasValue)
                 {
-                    protokollbogenData = protokollbogenResult;  // Assign the entire tuple
+                    protokollbogenData = protokollbogenResult;
 
                     if (_homeFolder == null)
                     {
@@ -272,7 +266,6 @@ namespace Automatisiertes_Kopieren
                     string cleanedHomeFolder = _homeFolder.TrimEnd('\\');
                     string cleanedDirectoryPath = protokollbogenData.Value.directoryPath.TrimStart('\\');
 
-                    // Construct the sourceFolderPath
                     sourceFolderPath = Path.Combine(cleanedHomeFolder, cleanedDirectoryPath);
                 }
             }
@@ -290,11 +283,40 @@ namespace Automatisiertes_Kopieren
             }
             string targetFolderPath = _fileManager.GetTargetPath(group, kidName, reportYear.ToString());
 
-            // Copy and rename files
-            if (protokollbogenData.HasValue && !string.IsNullOrEmpty(sourceFolderPath))  // Ensure both are not null/empty before using them
+            bool isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
+            bool isVorschulChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
+            bool isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
+
+            if (protokollbogenData.HasValue && !string.IsNullOrEmpty(sourceFolderPath))
             {
-                _fileManager.CopyFilesFromSourceToTarget(Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName + ".pdf"), targetFolderPath, protokollbogenData.Value.fileName + ".pdf");
+                if (isProtokollbogenChecked)
+                {
+                    _fileManager.CopyFilesFromSourceToTarget(Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName + ".pdf"), targetFolderPath, protokollbogenData.Value.fileName + ".pdf");
+                }
             }
+
+            string allgemeinerFilePath = Path.Combine(_homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
+
+            if (isAllgemeinerChecked && File.Exists(allgemeinerFilePath))
+            {
+                _fileManager.CopyFilesFromSourceToTarget(allgemeinerFilePath, targetFolderPath, Path.GetFileName(allgemeinerFilePath));
+            }
+            else if (!File.Exists(allgemeinerFilePath))
+            {
+                Log.Warning($"File 'Allgemeiner-Entwicklungsbericht.pdf' not found at {allgemeinerFilePath}.");
+            }
+
+            string vorschulFilePath = Path.Combine(_homeFolder, "Entwicklungsboegen", "Vorschul-Entwicklungsbericht.pdf");
+
+            if (isVorschulChecked && File.Exists(vorschulFilePath))
+            {
+                _fileManager.CopyFilesFromSourceToTarget(vorschulFilePath, targetFolderPath, Path.GetFileName(vorschulFilePath));
+            }
+            else if (!File.Exists(vorschulFilePath))
+            {
+                Log.Warning($"File 'Vorschul-Entwicklungsbericht.pdf' not found at {vorschulFilePath}.");
+            }
+
             if (protokollbogenData.HasValue)
             {
                 numericProtokollNumber = ExtractProtokollNumber(protokollbogenData.Value.fileName + ".pdf");
@@ -305,12 +327,9 @@ namespace Automatisiertes_Kopieren
                     return;
                 }
             }
-            bool isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
-            bool isVorschulentwicklungsberichtChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
-            bool isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
 
-            _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulentwicklungsberichtChecked, isProtokollbogenChecked, numericProtokollNumber);
-            // Provide feedback to the user
+            _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
+
             MessageBox.Show("Dateien erfolgreich kopiert und umbenannt.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
