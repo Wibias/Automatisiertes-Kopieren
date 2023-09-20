@@ -36,7 +36,7 @@
 
         <!-- Group Dropdown -->
         <Label Content="Gruppe:" Grid.Row="0" Margin="10,10,10,10" />
-        <ComboBox x:Name="groupDropdown" Grid.Row="0" Grid.Column="1" Style="{DynamicResource MahApps.Styles.ComboBox}" Margin="10,10,10,10">
+        <ComboBox x:Name="groupDropdown" Grid.Row="0" Grid.Column="1" Style="{DynamicResource MahApps.Styles.ComboBox}" Margin="10,10,10,10" SelectionChanged="OnGroupSelected">
             <ComboBoxItem Content="Bären" IsSelected="True"/>
             <ComboBoxItem Content="Löwen"/>
             <ComboBoxItem Content="Schnecken"/>
@@ -44,8 +44,8 @@
 
         <!-- Kid Name -->
         <Label Content="Kind Name:" Grid.Row="1" Margin="10,0,10,10" />
-        <TextBox x:Name="kidNameTextbox" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" />
-
+        <ComboBox x:Name="kidNameComboBox" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" IsEditable="True" Loaded="OnKidNameComboBoxLoaded" />
+        
         <!-- Report Month -->
         <Label Content="E-Bericht Monat:" Grid.Row="2" Margin="10,0,10,10" />
         <ComboBox x:Name="reportMonthDropdown" Grid.Row="2" Grid.Column="1" Margin="10,0,10,10">
