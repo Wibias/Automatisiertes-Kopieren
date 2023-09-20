@@ -5,7 +5,8 @@
                  Title="Automatisiertes Kopieren" 
                  MinHeight="400" MinWidth="550"
                  Width="600" Height="600"
-                 Closed="MainWindow_Closed">
+                 Closed="MainWindow_Closed"
+                 Loaded="MainWindow_Loaded">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*"/>

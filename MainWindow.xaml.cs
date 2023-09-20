@@ -3,6 +3,7 @@ using MahApps.Metro.Controls;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -24,15 +25,26 @@ namespace Automatisiertes_Kopieren
 
         public MainWindow()
         {
-            // Initialize Serilog
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
                 .WriteTo.File("log-.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
             InitializeComponent();
+
             protokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
             protokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
+        }
 
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // For testing purposes, set the _homeFolder directly here
+            _homeFolder = "G:\\Entwicklungsberichte"; // Replace with your actual folder path
+
+            if (groupDropdown.SelectedIndex == 0 && !string.IsNullOrEmpty(_homeFolder))
+            {
+                var defaultKidNames = GetKidNamesForGroup("Bären");
+                kidNameComboBox.ItemsSource = defaultKidNames;
+            }
         }
 
         private (double? months, string? error) ExtractMonthsFromExcel(string group, string lastName, string firstName)
@@ -58,14 +70,14 @@ namespace Automatisiertes_Kopieren
 
                         if (lastNameCell != lastName || firstNameCell != firstName)
                         {
-                            continue;  // Skip this iteration if names don't match
+                            continue;
                         }
 
                         var monthsValueRaw = worksheet.Cell(row, 6).Value.ToString();
 
                         if (double.TryParse(monthsValueRaw.Replace(",", "."), out double parsedValue))
                         {
-                            return (parsedValue, null); // Return the parsed value and null for the error
+                            return (parsedValue, null);
                         }
                     }
                 }
@@ -373,17 +385,17 @@ namespace Automatisiertes_Kopieren
             if (_homeFolder != null)
             {
                 string fullPath = Path.Combine(_homeFolder, groupPath);
-                Log.Information($"Full path: {fullPath}"); // Log the full path
+                Log.Information($"Full path: {fullPath}");
 
                 if (Directory.Exists(fullPath))
                 {
                     var directories = Directory.GetDirectories(fullPath);
-                    Log.Information($"Found directories: {string.Join(", ", directories)}"); // Log the found directories
+                    Log.Information($"Found directories: {string.Join(", ", directories)}");
                     return directories.Select(Path.GetFileName).OfType<string>().ToList();
                 }
                 else
                 {
-                    Log.Warning($"Directory does not exist: {fullPath}"); // Log if directory doesn't exist
+                    Log.Warning($"Directory does not exist: {fullPath}");
                 }
             }
             else
@@ -431,6 +443,11 @@ namespace Automatisiertes_Kopieren
             {
                 textBox.TextChanged += OnKidNameComboBoxTextChanged;
             }
+            if (groupDropdown.SelectedIndex == 0)
+            {
+                var defaultKidNames = GetKidNamesForGroup("Bären");
+                kidNameComboBox.ItemsSource = defaultKidNames;
+            }
         }
 
         private void OnKidNameComboBoxTextChanged(object sender, TextChangedEventArgs e)
@@ -454,22 +471,50 @@ namespace Automatisiertes_Kopieren
 
         private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (kidNameComboBox == null) return;
+            Log.Information("OnGroupSelected triggered");
+            if (kidNameComboBox == null)
+            {
+                Log.Warning("kidNameComboBox is null.");
+                return;
+            }
+
+            Log.Information($"_homeFolder value: {_homeFolder}");
 
             if (string.IsNullOrEmpty(_homeFolder))
             {
                 MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
+                groupDropdown.SelectionChanged -= OnGroupSelected;
+
                 groupDropdown.SelectedIndex = _previousGroupSelectionIndex;
+
+                groupDropdown.SelectionChanged += OnGroupSelected;
+
                 return;
             }
 
             _previousGroupSelectionIndex = groupDropdown.SelectedIndex;
-            string selectedGroup = groupDropdown.Text;
-            var kidNames = GetKidNamesForGroup(selectedGroup);
-            kidNameComboBox.ItemsSource = kidNames;
-        }
 
+            if (e.AddedItems.Count > 0)
+            {
+                Log.Information($"e.AddedItems[0] type: {e.AddedItems[0].GetType().Name}, value: {e.AddedItems[0]}");
+                if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxItem comboBoxItem && comboBoxItem.Content is string selectedGroup && !string.IsNullOrEmpty(selectedGroup))
+                {
+                    Log.Information($"Selected group: {selectedGroup}");
+                    var kidNames = GetKidNamesForGroup(selectedGroup);
+                    Log.Information($"Kid names for {selectedGroup}: {string.Join(", ", kidNames)}");
+                    kidNameComboBox.ItemsSource = kidNames;
+                }
+                else
+                {
+                    Log.Warning("Selected group is empty or not a valid ComboBoxItem.");
+                }
+            }
+            else
+            {
+                Log.Warning("No group selected.");
+            }
+        }
 
         private void SelectHomeFolder()
         {
