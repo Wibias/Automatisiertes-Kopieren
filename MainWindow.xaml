@@ -5,8 +5,7 @@
                  Title="Automatisiertes Kopieren" 
                  MinHeight="400" MinWidth="550"
                  Width="600" Height="600"
-                 Closed="MainWindow_Closed"
-                 Loaded="MainWindow_Loaded">
+                 Closed="MainWindow_Closed">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*"/>
@@ -45,8 +44,9 @@
 
         <!-- Kid Name -->
         <Label Content="Kind Name:" Grid.Row="1" Margin="10,0,10,10" />
-        <ComboBox x:Name="kidNameComboBox" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" IsEditable="True" Loaded="OnKidNameComboBoxLoaded" />
-        
+        <ComboBox x:Name="kidNameComboBox" PreviewTextInput="OnKidNameComboBoxPreviewTextInput" PreviewKeyDown="OnKidNameComboBoxPreviewKeyDown" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" IsEditable="True" Loaded="OnKidNameComboBoxLoaded" />
+
+
         <!-- Report Month -->
         <Label Content="E-Bericht Monat:" Grid.Row="2" Margin="10,0,10,10" />
         <ComboBox x:Name="reportMonthDropdown" Grid.Row="2" Grid.Column="1" Margin="10,0,10,10">

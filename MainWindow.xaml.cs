@@ -3,12 +3,13 @@ using MahApps.Metro.Controls;
 using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Configuration;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
 using MessageBox = System.Windows.MessageBox;
 
@@ -17,11 +18,11 @@ namespace Automatisiertes_Kopieren
     public partial class MainWindow : MetroWindow
     {
 
-        private string? _homeFolder;
         private FileManager? _fileManager;
         private int? _selectedProtokollbogenMonth;
         private bool _isHandlingCheckboxEvent = false;
         private int _previousGroupSelectionIndex = 0;
+        private List<string> _allKidNames = new List<string>();
 
         public MainWindow()
         {
@@ -30,32 +31,45 @@ namespace Automatisiertes_Kopieren
                 .WriteTo.File("log-.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
             InitializeComponent();
+            Log.Information("Loaded HomeFolderPath: " + homeFolder);
+            var settings = new AppSettings().LoadSettings();
+            if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
+            {
+                homeFolder = settings.HomeFolderPath;
+            }
+            else
+            {
+                SelectHomeFolder();
+            }
 
             protokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
             protokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private string? _homeFolder;
+        public string? homeFolder
         {
-            // For testing purposes, set the _homeFolder directly here
-            _homeFolder = "G:\\Entwicklungsberichte"; // Replace with your actual folder path
-
-            if (groupDropdown.SelectedIndex == 0 && !string.IsNullOrEmpty(_homeFolder))
+            get => _homeFolder;
+            set
             {
-                var defaultKidNames = GetKidNamesForGroup("Bären");
-                kidNameComboBox.ItemsSource = defaultKidNames;
+                _homeFolder = value;
+                if (groupDropdown.SelectedIndex == 0 && !string.IsNullOrEmpty(_homeFolder))
+                {
+                    var defaultKidNames = GetKidNamesForGroup("Bären");
+                    kidNameComboBox.ItemsSource = defaultKidNames;
+                }
             }
         }
 
         private (double? months, string? error) ExtractMonthsFromExcel(string group, string lastName, string firstName)
         {
-            if (string.IsNullOrEmpty(_homeFolder))
+            if (string.IsNullOrEmpty(homeFolder))
             {
                 return (null, "HomeFolderNotSet");
             }
             string convertedGroupName = ConvertSpecialCharacters(group, ConversionType.Umlaute);
             string shortGroupName = convertedGroupName.Split(' ')[0];
-            string filePath = $@"{_homeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
+            string filePath = $@"{homeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
 
             try
             {
@@ -175,9 +189,9 @@ namespace Automatisiertes_Kopieren
 
             if (_fileManager == null)
             {
-                if (_homeFolder != null)
+                if (homeFolder != null)
                 {
-                    _fileManager = new FileManager(_homeFolder);
+                    _fileManager = new FileManager(homeFolder);
                 }
                 else
                 {
@@ -187,7 +201,7 @@ namespace Automatisiertes_Kopieren
             }
 
             // Check if _homeFolder is null
-            if (_homeFolder == null)
+            if (homeFolder == null)
             {
                 MessageBox.Show("Das Hauptverzeichnis ist nicht festgelegt.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
@@ -195,7 +209,7 @@ namespace Automatisiertes_Kopieren
 
             // Validate kid's name
             string kidName = kidNameComboBox.Text;
-            string? validatedKidName = ValidationHelper.ValidateKidName(kidName, _homeFolder, groupDropdown.Text);
+            string? validatedKidName = ValidationHelper.ValidateKidName(kidName, homeFolder, groupDropdown.Text);
             if (string.IsNullOrEmpty(validatedKidName))
             {
                 // Stop processing because the name wasn't valid or another error occurred.
@@ -236,13 +250,13 @@ namespace Automatisiertes_Kopieren
             string numericProtokollNumber = string.Empty;
 
             string group = FileManager.StringUtilities.ConvertToTitleCase(groupDropdown.Text);
-            if (_homeFolder == null)
+            if (homeFolder == null)
             {
                 MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            string? validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, _homeFolder, groupDropdown.Text);
+            string? validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, homeFolder, groupDropdown.Text);
             if (validatedKidName == null)
             {
                 MessageBox.Show("Ungültiger Kinder-Name.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -273,13 +287,13 @@ namespace Automatisiertes_Kopieren
                 {
                     protokollbogenData = protokollbogenResult;
 
-                    if (_homeFolder == null)
+                    if (homeFolder == null)
                     {
                         MessageBox.Show("Das Hauptverzeichnis ist nicht festgelegt.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
-                    string cleanedHomeFolder = _homeFolder.TrimEnd('\\');
+                    string cleanedHomeFolder = homeFolder.TrimEnd('\\');
                     string cleanedDirectoryPath = protokollbogenData.Value.directoryPath.TrimStart('\\');
 
                     sourceFolderPath = Path.Combine(cleanedHomeFolder, cleanedDirectoryPath);
@@ -311,7 +325,7 @@ namespace Automatisiertes_Kopieren
                 }
             }
 
-            string allgemeinerFilePath = Path.Combine(_homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
+            string allgemeinerFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
 
             if (isAllgemeinerChecked && File.Exists(allgemeinerFilePath))
             {
@@ -322,7 +336,7 @@ namespace Automatisiertes_Kopieren
                 Log.Warning($"File 'Allgemeiner-Entwicklungsbericht.pdf' not found at {allgemeinerFilePath}.");
             }
 
-            string vorschulFilePath = Path.Combine(_homeFolder, "Entwicklungsboegen", "Vorschul-Entwicklungsbericht.pdf");
+            string vorschulFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschul-Entwicklungsbericht.pdf");
 
             if (isVorschulChecked && File.Exists(vorschulFilePath))
             {
@@ -351,11 +365,11 @@ namespace Automatisiertes_Kopieren
 
         private bool IsHomeFolderSelected()
         {
-            if (!string.IsNullOrEmpty(_homeFolder))
+            if (!string.IsNullOrEmpty(homeFolder))
                 return true;
 
             SelectHomeFolder();
-            return !string.IsNullOrEmpty(_homeFolder);
+            return !string.IsNullOrEmpty(homeFolder);
         }
 
         private bool AreAllRequiredFieldsFilled()
@@ -382,15 +396,14 @@ namespace Automatisiertes_Kopieren
 
         private List<string> GetKidNamesFromDirectory(string groupPath)
         {
-            if (_homeFolder != null)
+            if (homeFolder != null)
             {
-                string fullPath = Path.Combine(_homeFolder, groupPath);
+                string fullPath = Path.Combine(homeFolder, groupPath);
                 Log.Information($"Full path: {fullPath}");
 
                 if (Directory.Exists(fullPath))
                 {
                     var directories = Directory.GetDirectories(fullPath);
-                    Log.Information($"Found directories: {string.Join(", ", directories)}");
                     return directories.Select(Path.GetFileName).OfType<string>().ToList();
                 }
                 else
@@ -443,30 +456,98 @@ namespace Automatisiertes_Kopieren
             {
                 textBox.TextChanged += OnKidNameComboBoxTextChanged;
             }
-            if (groupDropdown.SelectedIndex == 0)
+
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                var defaultKidNames = GetKidNamesForGroup("Bären");
-                kidNameComboBox.ItemsSource = defaultKidNames;
-            }
+                if (groupDropdown.SelectedIndex == 0)
+                {
+                    OnGroupSelected(groupDropdown, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, new List<object>(), new List<object> { groupDropdown.SelectedItem }));
+                }
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
-        private void OnKidNameComboBoxTextChanged(object sender, TextChangedEventArgs e)
+        private void OnKidNameComboBoxPreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             if (kidNameComboBox == null) return;
 
-            string input = kidNameComboBox.Text;
+            var textBox = kidNameComboBox.Template.FindName("PART_EditableTextBox", kidNameComboBox) as TextBox;
+            if (textBox == null) return;
 
-            var allKidNames = kidNameComboBox.ItemsSource as List<string>;
+            string futureText = textBox.Text.Insert(textBox.CaretIndex, e.Text);
 
-            if (allKidNames == null) return;
+            var filteredNames = _allKidNames.Where(name => name.StartsWith(futureText, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            var filteredNames = allKidNames.Where(name => name.StartsWith(input, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (filteredNames.Count == 0)
+            {
+                kidNameComboBox.ItemsSource = _allKidNames;
+                kidNameComboBox.IsDropDownOpen = false;
+                return;
+            }
 
             kidNameComboBox.ItemsSource = filteredNames;
-
-            kidNameComboBox.Text = input;
-
+            kidNameComboBox.Text = futureText;
+            textBox.CaretIndex = futureText.Length;  // Set the caret position to the end of the input
             kidNameComboBox.IsDropDownOpen = true;
+
+            // This is important to prevent the ComboBox from handling the input and selecting an item
+            e.Handled = true;
+        }
+
+        private void OnKidNameComboBoxPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Down || e.Key == Key.Up)
+            {
+                // If the dropdown is open and the user presses the arrow keys, let the ComboBox handle the navigation
+                if (kidNameComboBox.IsDropDownOpen)
+                {
+                    e.Handled = false;
+                }
+            }
+            else if (e.Key == Key.Enter)
+            {
+                // If the user presses Enter, select the highlighted item
+                if (kidNameComboBox.IsDropDownOpen)
+                {
+                    kidNameComboBox.SelectedItem = kidNameComboBox.Items.CurrentItem;
+                    kidNameComboBox.IsDropDownOpen = false;
+                }
+            }
+        }
+
+        private bool _isUpdatingComboBox = false;
+
+        private void OnKidNameComboBoxTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isUpdatingComboBox) return;
+            if (kidNameComboBox == null) return;
+
+            _isUpdatingComboBox = true;
+
+            string input = kidNameComboBox.Text;
+
+            var filteredNames = _allKidNames.Where(name => name.StartsWith(input, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            kidNameComboBox.ItemsSource = filteredNames.Count > 0 ? filteredNames : _allKidNames;
+            kidNameComboBox.Text = input;
+            kidNameComboBox.IsDropDownOpen = filteredNames.Count > 0;
+
+            var textBox = kidNameComboBox.Template.FindName("PART_EditableTextBox", kidNameComboBox) as TextBox;
+            if (textBox != null)
+            {
+                textBox.SelectionStart = input.Length;  // Set the caret position to the end of the input
+            }
+
+            _isUpdatingComboBox = false;
+        }
+
+        private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (groupDropdown.SelectedIndex == 0)
+            {
+                var defaultKidNames = GetKidNamesForGroup("Bären");
+                _allKidNames = defaultKidNames;
+                kidNameComboBox.ItemsSource = _allKidNames;
+            }
         }
 
         private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
@@ -478,37 +559,47 @@ namespace Automatisiertes_Kopieren
                 return;
             }
 
-            Log.Information($"_homeFolder value: {_homeFolder}");
+            Log.Information($"_homeFolder value: {homeFolder}");
 
-            if (string.IsNullOrEmpty(_homeFolder))
+            if (string.IsNullOrEmpty(homeFolder))
             {
-                MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBoxResult result = MessageBox.Show("Möchten Sie das Hauptverzeichnis ändern?", "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
-                groupDropdown.SelectionChanged -= OnGroupSelected;
-
-                groupDropdown.SelectedIndex = _previousGroupSelectionIndex;
-
-                groupDropdown.SelectionChanged += OnGroupSelected;
-
-                return;
+                if (result == MessageBoxResult.Yes)
+                {
+                    using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
+                    {
+                        System.Windows.Forms.DialogResult dialogResult = dialog.ShowDialog();
+                        if (dialogResult == System.Windows.Forms.DialogResult.OK)
+                        {
+                            homeFolder = dialog.SelectedPath;
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    return;
+                }
             }
 
             _previousGroupSelectionIndex = groupDropdown.SelectedIndex;
 
-            if (e.AddedItems.Count > 0)
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxItem comboBoxItem && comboBoxItem.Content is string selectedGroup && !string.IsNullOrEmpty(selectedGroup))
             {
-                Log.Information($"e.AddedItems[0] type: {e.AddedItems[0].GetType().Name}, value: {e.AddedItems[0]}");
-                if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxItem comboBoxItem && comboBoxItem.Content is string selectedGroup && !string.IsNullOrEmpty(selectedGroup))
-                {
-                    Log.Information($"Selected group: {selectedGroup}");
-                    var kidNames = GetKidNamesForGroup(selectedGroup);
-                    Log.Information($"Kid names for {selectedGroup}: {string.Join(", ", kidNames)}");
-                    kidNameComboBox.ItemsSource = kidNames;
-                }
-                else
-                {
-                    Log.Warning("Selected group is empty or not a valid ComboBoxItem.");
-                }
+                Log.Information($"e.AddedItems[0] type: {e.AddedItems[0]?.GetType().Name ?? "null"}, value: {e.AddedItems[0]}");
+                Log.Information($"Selected group: {selectedGroup}");
+                var kidNames = GetKidNamesForGroup(selectedGroup);
+                _allKidNames = GetKidNamesForGroup(selectedGroup);  // Populate the _allKidNames list
+                kidNameComboBox.ItemsSource = _allKidNames;
+            }
+            else if (e.AddedItems.Count > 0)
+            {
+                Log.Warning($"e.AddedItems[0] type: {e.AddedItems[0]?.GetType().Name ?? "null"}, value: {e.AddedItems[0]}");
+                Log.Warning("Selected group is empty or not a valid ComboBoxItem.");
             }
             else
             {
@@ -518,6 +609,7 @@ namespace Automatisiertes_Kopieren
 
         private void SelectHomeFolder()
         {
+            Log.Information("SelectHomeFolder method called");
             var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
             {
                 dialog.Description = "Wählen Sie das Hauptverzeichnis aus";
@@ -526,12 +618,21 @@ namespace Automatisiertes_Kopieren
                 var result = dialog.ShowDialog();
                 if (result.HasValue && result.Value)
                 {
-                    _homeFolder = dialog.SelectedPath;
+                    homeFolder = dialog.SelectedPath;
                     InitializeFileManager();
-                    MessageBox.Show($"Ausgewähltes Hauptverzeichnis: {_homeFolder}", "Hauptverzeichnis ausgewählt", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Save the homeFolder to the new settings
+                    var settings = new AppSettings
+                    {
+                        HomeFolderPath = homeFolder
+                    };
+                    settings.SaveSettings(settings);
+
+                    MessageBox.Show($"Ausgewähltes Hauptverzeichnis: {homeFolder}", "Hauptverzeichnis ausgewählt", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
+
         private void OnSelectHomeFolderButtonClicked(object sender, RoutedEventArgs e)
         {
             SelectHomeFolder();
@@ -539,9 +640,9 @@ namespace Automatisiertes_Kopieren
 
         private void InitializeFileManager()
         {
-            if (_homeFolder != null)
+            if (homeFolder != null)
             {
-                _fileManager = new FileManager(_homeFolder);
+                _fileManager = new FileManager(homeFolder);
             }
             else
             {
@@ -553,6 +654,5 @@ namespace Automatisiertes_Kopieren
         {
             Log.CloseAndFlush();
         }
-
     }
 }
