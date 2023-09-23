@@ -155,40 +155,29 @@ namespace Automatisiertes_Kopieren
             }
         }
 
-        public void CopyFilesFromSourceToTarget(string sourceFile, string targetFolderPath, string protokollbogenFileName)
-        {
-            if (!Directory.Exists(targetFolderPath))
-            {
-                Directory.CreateDirectory(targetFolderPath);
-            }
-
-            Serilog.Log.Information($"Versuche, auf die Datei zuzugreifen unter: {sourceFile}");
-            if (File.Exists(sourceFile))
-            {
-                try
-                {
-                    SafeCopyFile(sourceFile, Path.Combine(targetFolderPath, protokollbogenFileName));
-                }
-                catch (Exception ex)
-                {
-                    Serilog.Log.Error($"Fehler beim Kopieren der Datei. Quelle: {sourceFile}, Ziel: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Fehler: {ex.Message}");
-                }
-            }
-            else
-            {
-                Serilog.Log.Warning($"Datei {protokollbogenFileName} wurde nicht im Quellverzeichnis gefunden.");
-            }
-        }
-
         public void SafeCopyFile(string sourceFile, string destFile)
         {
             string? destDir = Path.GetDirectoryName(destFile);
+            if (destDir != null && !Directory.Exists(destDir))
+            {
+                Directory.CreateDirectory(destDir);
+            }
+
+            Serilog.Log.Information($"Versuche, auf die Datei zuzugreifen unter: {sourceFile}");
+
+            if (!File.Exists(sourceFile))
+            {
+                Serilog.Log.Warning($"Datei {Path.GetFileName(sourceFile)} wurde nicht im Quellverzeichnis gefunden.");
+                return;
+            }
+
             if (destDir == null || !ValidationHelper.IsValidPath(destDir))
             {
                 Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {destDir ?? "null"}");
                 MessageBox.Show($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
+
             try
             {
                 if (File.Exists(destFile))
