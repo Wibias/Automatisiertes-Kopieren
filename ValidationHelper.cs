@@ -73,7 +73,7 @@ namespace Automatisiertes_Kopieren
         {
             if (string.IsNullOrWhiteSpace(kidName))
             {
-                Log.Error("Kid name is empty or whitespace.");
+                Log.Error("Der Kinder-Name ist leer oder enthält ein Leerzeichen.");
                 MessageBox.Show("Bitte geben Sie den Namen eines Kindes an.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }

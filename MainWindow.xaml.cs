@@ -31,7 +31,6 @@ namespace Automatisiertes_Kopieren
                 .WriteTo.File("log-.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
             InitializeComponent();
-            Log.Information("Loaded HomeFolderPath: " + homeFolder);
             var settings = new AppSettings().LoadSettings();
             if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
             {
@@ -70,6 +69,12 @@ namespace Automatisiertes_Kopieren
             string convertedGroupName = ConvertSpecialCharacters(group, ConversionType.Umlaute);
             string shortGroupName = convertedGroupName.Split(' ')[0];
             string filePath = $@"{homeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
+
+            if (!ValidationHelper.IsValidPath(filePath))
+            {
+                Log.Error($"Verzeichnis existiert nicht: {filePath}");
+                return (null, "InvalidPath");
+            }
 
             try
             {
@@ -113,22 +118,20 @@ namespace Automatisiertes_Kopieren
 
         private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
         {
-            if (_isHandlingCheckboxEvent) return; // Exit if already handling the event
+            if (_isHandlingCheckboxEvent) return;
 
-            _isHandlingCheckboxEvent = true; // Set the flag to true
+            _isHandlingCheckboxEvent = true;
 
             if (e.RoutedEvent.Name == "Checked")
             {
-                // Handle the Checked logic here
                 HandleProtokollbogenAutoCheckbox(true);
             }
             else if (e.RoutedEvent.Name == "Unchecked")
             {
-                // Handle the Unchecked logic here
                 HandleProtokollbogenAutoCheckbox(false);
             }
 
-            _isHandlingCheckboxEvent = false; // Reset the flag
+            _isHandlingCheckboxEvent = false;
             e.Handled = true;
         }
 
@@ -146,22 +149,22 @@ namespace Automatisiertes_Kopieren
                 if (result.error == "HomeFolderNotSet")
                 {
                     MessageBox.Show("Bitte setzen Sie zuerst den Heimordner.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    protokollbogenAutoCheckbox.IsChecked = false; // Uncheck the checkbox to prevent further processing
+                    protokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 }
                 else if (result.error == "FileNotFound")
                 {
                     MessageBox.Show("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    protokollbogenAutoCheckbox.IsChecked = false; // Uncheck the checkbox to prevent further processing
+                    protokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 }
                 else if (!result.months.HasValue)
                 {
                     MessageBox.Show("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    protokollbogenAutoCheckbox.IsChecked = false; // Uncheck the checkbox to prevent further processing
+                    protokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 }
-                _selectedProtokollbogenMonth = (int)Math.Round(result.months.Value); // Rounding to get the nearest whole month
+                _selectedProtokollbogenMonth = (int)Math.Round(result.months.Value);
             }
             else
             {
@@ -277,7 +280,6 @@ namespace Automatisiertes_Kopieren
             string kidFirstName = nameParts[0];
             string kidLastName = nameParts[1];
 
-            // Extract months from Excel
             var (months, error) = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
 
             if (months.HasValue)
@@ -327,6 +329,12 @@ namespace Automatisiertes_Kopieren
 
             string allgemeinerFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
 
+            if (!ValidationHelper.IsValidPath(allgemeinerFilePath))
+            {
+                Log.Error($"Verzeichnis existiert nicht: {allgemeinerFilePath}");
+                return;
+            }
+
             if (isAllgemeinerChecked && File.Exists(allgemeinerFilePath))
             {
                 _fileManager.CopyFilesFromSourceToTarget(allgemeinerFilePath, targetFolderPath, Path.GetFileName(allgemeinerFilePath));
@@ -338,13 +346,19 @@ namespace Automatisiertes_Kopieren
 
             string vorschulFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschul-Entwicklungsbericht.pdf");
 
+            if (!ValidationHelper.IsValidPath(vorschulFilePath))
+            {
+                Log.Error($"Verzeichnis existiert nicht: {vorschulFilePath}");
+                return;
+            }
+
             if (isVorschulChecked && File.Exists(vorschulFilePath))
             {
                 _fileManager.CopyFilesFromSourceToTarget(vorschulFilePath, targetFolderPath, Path.GetFileName(vorschulFilePath));
             }
             else if (!File.Exists(vorschulFilePath))
             {
-                Log.Warning($"File 'Vorschul-Entwicklungsbericht.pdf' not found at {vorschulFilePath}.");
+                Log.Warning($"Datei 'Vorschul-Entwicklungsbericht.pdf' nicht gefunden unter {vorschulFilePath}.");
             }
 
             if (protokollbogenData.HasValue)
@@ -399,7 +413,12 @@ namespace Automatisiertes_Kopieren
             if (homeFolder != null)
             {
                 string fullPath = Path.Combine(homeFolder, groupPath);
-                Log.Information($"Full path: {fullPath}");
+
+                if (!ValidationHelper.IsValidPath(fullPath))
+                {
+                    Log.Error($"Verzeichnis existiert nicht: {fullPath}");
+                    return new List<string>();
+                };
 
                 if (Directory.Exists(fullPath))
                 {
@@ -408,12 +427,12 @@ namespace Automatisiertes_Kopieren
                 }
                 else
                 {
-                    Log.Warning($"Directory does not exist: {fullPath}");
+                    Log.Warning($"Verzeichnis existiert nicht: {fullPath}");
                 }
             }
             else
             {
-                Log.Warning("_homeFolder is not set.");
+                Log.Warning("_homeFolder ist nicht gesetzt.");
             }
             return new List<string>();
         }
@@ -552,15 +571,6 @@ namespace Automatisiertes_Kopieren
 
         private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
         {
-            Log.Information("OnGroupSelected triggered");
-            if (kidNameComboBox == null)
-            {
-                Log.Warning("kidNameComboBox is null.");
-                return;
-            }
-
-            Log.Information($"_homeFolder value: {homeFolder}");
-
             if (string.IsNullOrEmpty(homeFolder))
             {
                 MessageBoxResult result = MessageBox.Show("Möchten Sie das Hauptverzeichnis ändern?", "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -593,7 +603,7 @@ namespace Automatisiertes_Kopieren
                 Log.Information($"e.AddedItems[0] type: {e.AddedItems[0]?.GetType().Name ?? "null"}, value: {e.AddedItems[0]}");
                 Log.Information($"Selected group: {selectedGroup}");
                 var kidNames = GetKidNamesForGroup(selectedGroup);
-                _allKidNames = GetKidNamesForGroup(selectedGroup);  // Populate the _allKidNames list
+                _allKidNames = GetKidNamesForGroup(selectedGroup);
                 kidNameComboBox.ItemsSource = _allKidNames;
             }
             else if (e.AddedItems.Count > 0)
@@ -619,9 +629,15 @@ namespace Automatisiertes_Kopieren
                 if (result.HasValue && result.Value)
                 {
                     homeFolder = dialog.SelectedPath;
+
+                    if (!ValidationHelper.IsValidPath(homeFolder))
+                    {
+                        Log.Error($"Invalid home folder path: {homeFolder}");
+                        MessageBox.Show("The selected path is invalid. Please choose a valid directory.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
                     InitializeFileManager();
 
-                    // Save the homeFolder to the new settings
                     var settings = new AppSettings
                     {
                         HomeFolderPath = homeFolder
@@ -640,7 +656,7 @@ namespace Automatisiertes_Kopieren
 
         private void InitializeFileManager()
         {
-            if (homeFolder != null)
+            if (homeFolder != null && ValidationHelper.IsValidPath(homeFolder))
             {
                 _fileManager = new FileManager(homeFolder);
             }

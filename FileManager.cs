@@ -27,7 +27,7 @@ namespace Automatisiertes_Kopieren
             {
                 throw new InvalidOperationException("Das Hauptverzeichnis ist nicht festgelegt.");
             }
-            return $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\Aktuell\{kidName}\{reportYear}";
+            return Path.Combine(_homeFolder, "Entwicklungsberichte", $"{group} Entwicklungsberichte", "Aktuell", kidName, reportYear);
         }
 
         public void SafeRenameFile(string sourceFile, string destFile)
@@ -184,6 +184,12 @@ namespace Automatisiertes_Kopieren
 
         public void SafeCopyFile(string sourceFile, string destFile)
         {
+            if (!ValidationHelper.IsValidPath(Path.GetDirectoryName(destFile)))
+            {
+                Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {Path.GetDirectoryName(destFile)}");
+                MessageBox.Show($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             try
             {
                 if (File.Exists(destFile))
