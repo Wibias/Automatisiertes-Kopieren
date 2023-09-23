@@ -38,28 +38,27 @@ namespace Automatisiertes_Kopieren
                 if (File.Exists(destFile))
                 {
                     // Prompt user to overwrite or not
-                    MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "File exists", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "Datei existiert", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                     if (result == MessageBoxResult.Yes)
                     {
                         // Backup existing file with timestamp
                         string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                         File.Move(destFile, backupFilename);
-                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        MessageBox.Show("Die Datei wurde nicht umbenannt.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Die Datei wurde nicht umbenannt.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
                 }
 
-                // Rename source file to destination
                 File.Move(sourceFile, destFile);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler beim Umbenennen der Datei: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Fehler beim Umbenennen der Datei: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -78,9 +77,8 @@ namespace Automatisiertes_Kopieren
             }
             else
             {
-                // Handle the error if the number couldn't be extracted.
-                Log.Error($"Failed to extract numeric value from protokollNumber: {protokollNumber}");
-                return; // or throw an exception, or handle it in another appropriate way.
+                Log.Error($"Der numerische Wert konnte nicht aus folgender Protokollnummer extrahiert werden: {protokollNumber}");
+                return;
             }
 
             string[] files = Directory.GetFiles(targetFolderPath);
@@ -118,7 +116,7 @@ namespace Automatisiertes_Kopieren
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error beim Kopieren der Datei: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Fehler beim Kopieren der Datei: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -164,7 +162,7 @@ namespace Automatisiertes_Kopieren
                 Directory.CreateDirectory(targetFolderPath);
             }
 
-            Serilog.Log.Information($"Trying to access file at: {sourceFile}");
+            Serilog.Log.Information($"Versuche, auf die Datei zuzugreifen unter: {sourceFile}");
             if (File.Exists(sourceFile))
             {
                 try
@@ -173,50 +171,50 @@ namespace Automatisiertes_Kopieren
                 }
                 catch (Exception ex)
                 {
-                    Serilog.Log.Error($"Error copying file. Source: {sourceFile}, Destination: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Error: {ex.Message}");
+                    Serilog.Log.Error($"Fehler beim Kopieren der Datei. Quelle: {sourceFile}, Ziel: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Fehler: {ex.Message}");
                 }
             }
             else
             {
-                Serilog.Log.Warning($"File {protokollbogenFileName} not found in source folder.");
+                Serilog.Log.Warning($"Datei {protokollbogenFileName} wurde nicht im Quellverzeichnis gefunden.");
             }
         }
 
         public void SafeCopyFile(string sourceFile, string destFile)
         {
-            if (!ValidationHelper.IsValidPath(Path.GetDirectoryName(destFile)))
+            string? destDir = Path.GetDirectoryName(destFile);
+            if (destDir == null || !ValidationHelper.IsValidPath(destDir))
             {
-                Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {Path.GetDirectoryName(destFile)}");
-                MessageBox.Show($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {destDir ?? "null"}");
+                MessageBox.Show($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             try
             {
                 if (File.Exists(destFile))
                 {
-                    MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "File exists", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "Datei existiert bereits", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                     if (result == MessageBoxResult.Yes)
                     {
                         string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                         File.Move(destFile, backupFilename);
-                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        MessageBox.Show("Die Datei wurde nicht kopiert.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Die Datei wurde nicht kopiert.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
                 }
 
                 File.Copy(sourceFile, destFile, overwrite: true);
-                MessageBox.Show($"Die Datei wurde erfolgreich kopiert: {destFile}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"Die Datei wurde erfolgreich kopiert: {destFile}", "Erfolgreich", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler beim Kopieren der Datei: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Fehler beim Kopieren der Datei: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
     }
 }

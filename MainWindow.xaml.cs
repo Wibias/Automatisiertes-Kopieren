@@ -4,7 +4,6 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Configuration;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -174,14 +173,10 @@ namespace Automatisiertes_Kopieren
 
         private void OnGenerateButtonClicked(object sender, RoutedEventArgs e)
         {
-            // Input validation
             if (!IsValidInput())
             {
-                // If the input is not valid, return and avoid performing the operations
                 return;
             }
-
-            // Perform the required file operations if input is valid
             PerformFileOperations();
         }
 
@@ -453,6 +448,13 @@ namespace Automatisiertes_Kopieren
                     break;
             }
             Log.Information($"Constructed Path for {groupName}: {path}");
+
+            if (!ValidationHelper.IsValidPath(path))
+            {
+                Log.Error($"Invalid path constructed for group {groupName}: {path}");
+                return new List<string>();
+            }
+
             return GetKidNamesFromDirectory(path);
         }
 

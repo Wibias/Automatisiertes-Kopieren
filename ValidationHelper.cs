@@ -74,7 +74,7 @@ namespace Automatisiertes_Kopieren
             if (string.IsNullOrWhiteSpace(kidName))
             {
                 Log.Error("Der Kinder-Name ist leer oder enthält ein Leerzeichen.");
-                MessageBox.Show("Bitte geben Sie den Namen eines Kindes an.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Bitte geben Sie den Namen eines Kindes an.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
 
@@ -85,7 +85,7 @@ namespace Automatisiertes_Kopieren
             if (!IsValidPath(groupPath))
             {
                 Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {groupPath}");
-                MessageBox.Show($"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
 
@@ -96,7 +96,7 @@ namespace Automatisiertes_Kopieren
             if (!kidNameExists)
             {
                 Log.Error($"Kid name not found in group directory: {kidName}");
-                MessageBox.Show($"Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
 
