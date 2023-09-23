@@ -25,15 +25,17 @@ namespace Automatisiertes_Kopieren
 
         public MainWindow()
         {
+            string logDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Automatisiertes_Kopieren", "logs");
+            string logFilePath = Path.Combine(logDirectory, "log-.txt");
+
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console()
-                .WriteTo.File("log-.txt", rollingInterval: RollingInterval.Day)
+                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
                 .CreateLogger();
             InitializeComponent();
             var settings = new AppSettings().LoadSettings();
             if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
             {
-                homeFolder = settings.HomeFolderPath;
+                HomeFolder = settings.HomeFolderPath;
             }
             else
             {
@@ -45,7 +47,7 @@ namespace Automatisiertes_Kopieren
         }
 
         private string? _homeFolder;
-        public string? homeFolder
+        public string? HomeFolder
         {
             get => _homeFolder;
             set
@@ -61,13 +63,13 @@ namespace Automatisiertes_Kopieren
 
         private (double? months, string? error) ExtractMonthsFromExcel(string group, string lastName, string firstName)
         {
-            if (string.IsNullOrEmpty(homeFolder))
+            if (string.IsNullOrEmpty(HomeFolder))
             {
                 return (null, "HomeFolderNotSet");
             }
             string convertedGroupName = ConvertSpecialCharacters(group, ConversionType.Umlaute);
             string shortGroupName = convertedGroupName.Split(' ')[0];
-            string filePath = $@"{homeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
+            string filePath = $@"{HomeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
 
             if (!ValidationHelper.IsValidPath(filePath))
             {
@@ -187,9 +189,9 @@ namespace Automatisiertes_Kopieren
 
             if (_fileManager == null)
             {
-                if (homeFolder != null)
+                if (HomeFolder != null)
                 {
-                    _fileManager = new FileManager(homeFolder, this);
+                    _fileManager = new FileManager(HomeFolder, this);
                 }
                 else
                 {
@@ -198,22 +200,20 @@ namespace Automatisiertes_Kopieren
                 }
             }
 
-            if (homeFolder == null)
+            if (HomeFolder == null)
             {
                 ShowError("Das Hauptverzeichnis ist nicht festgelegt.");
                 return false;
             }
 
-            // Validate kid's name
             string kidName = kidNameComboBox.Text;
-            string? validatedKidName = ValidationHelper.ValidateKidName(kidName, homeFolder, groupDropdown.Text, this);
+            string? validatedKidName = ValidationHelper.ValidateKidName(kidName, HomeFolder, groupDropdown.Text, this);
             if (string.IsNullOrEmpty(validatedKidName))
             {
                 ShowError("Ungültiger Kinder-Name");
                 return false;
             }
 
-            // Validate report year
             string reportYearText = reportYearTextbox.Text;
             try
             {
@@ -233,7 +233,7 @@ namespace Automatisiertes_Kopieren
             return true;
         }
 
-        private string ExtractProtokollNumber(string fileName)
+        private static string ExtractProtokollNumber(string fileName)
         {
             var match = Regex.Match(fileName, @"Kind_Protokollbogen_(\d+)_Monate\.pdf");
             return match.Success ? match.Groups[1].Value + "_Monate" : string.Empty;
@@ -255,13 +255,13 @@ namespace Automatisiertes_Kopieren
             kidName = string.Empty;
             reportYear = 0;
 
-            if (homeFolder == null)
+            if (HomeFolder == null)
             {
                 ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
                 return false;
             }
 
-            string? validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, homeFolder, groupDropdown.Text, this);
+            string? validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, HomeFolder, groupDropdown.Text, this);
             if (validatedKidName == null)
             {
                 return false;
@@ -300,7 +300,7 @@ namespace Automatisiertes_Kopieren
                 return false;
             }
 
-            if (homeFolder == null)
+            if (HomeFolder == null)
             {
                 ShowError("Home folder is missing.");
                 return false;
@@ -312,7 +312,7 @@ namespace Automatisiertes_Kopieren
                 return false;
             }
 
-            sourceFolderPath = Path.Combine(homeFolder.TrimEnd('\\'), protokollbogenData.Value.directoryPath.TrimStart('\\'));
+            sourceFolderPath = Path.Combine(HomeFolder.TrimEnd('\\'), protokollbogenData.Value.directoryPath.TrimStart('\\'));
 
             if (_fileManager == null)
             {
@@ -343,15 +343,15 @@ namespace Automatisiertes_Kopieren
 
             CopyFileIfChecked(isProtokollbogenChecked, Path.Combine(sourceFolderPath, numericProtokollNumber + ".pdf"), Path.Combine(targetFolderPath, numericProtokollNumber + ".pdf"));
 
-            if (homeFolder == null || string.IsNullOrEmpty("Entwicklungsboegen") || string.IsNullOrEmpty("Allgemeiner-Entwicklungsbericht.pdf"))
+            if (HomeFolder == null || string.IsNullOrEmpty("Entwicklungsboegen") || string.IsNullOrEmpty("Allgemeiner-Entwicklungsbericht.pdf"))
             {
                 ShowError("One of the path components is missing.");
                 return;
             }
-            string allgemeinerFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
+            string allgemeinerFilePath = Path.Combine(HomeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
             CopyFileIfChecked(isAllgemeinerChecked && File.Exists(allgemeinerFilePath), allgemeinerFilePath, Path.Combine(targetFolderPath, Path.GetFileName(allgemeinerFilePath)));
 
-            string vorschulFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschul-Entwicklungsbericht.pdf");
+            string vorschulFilePath = Path.Combine(HomeFolder, "Entwicklungsboegen", "Vorschul-Entwicklungsbericht.pdf");
             CopyFileIfChecked(isVorschulChecked && File.Exists(vorschulFilePath), vorschulFilePath, Path.Combine(targetFolderPath, Path.GetFileName(vorschulFilePath)));
 
             if (_fileManager == null)
@@ -384,11 +384,11 @@ namespace Automatisiertes_Kopieren
 
         private bool IsHomeFolderSelected()
         {
-            if (!string.IsNullOrEmpty(homeFolder))
+            if (!string.IsNullOrEmpty(HomeFolder))
                 return true;
 
             SelectHomeFolder();
-            return !string.IsNullOrEmpty(homeFolder);
+            return !string.IsNullOrEmpty(HomeFolder);
         }
 
         private bool AreAllRequiredFieldsFilled()
@@ -415,9 +415,9 @@ namespace Automatisiertes_Kopieren
 
         private List<string> GetKidNamesFromDirectory(string groupPath)
         {
-            if (homeFolder != null)
+            if (HomeFolder != null)
             {
-                string fullPath = Path.Combine(homeFolder, groupPath);
+                string fullPath = Path.Combine(HomeFolder, groupPath);
 
                 if (!ValidationHelper.IsValidPath(fullPath))
                 {
@@ -580,7 +580,7 @@ namespace Automatisiertes_Kopieren
 
         private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (string.IsNullOrEmpty(homeFolder))
+            if (string.IsNullOrEmpty(HomeFolder))
             {
                 MessageBoxResult result = MessageBox.Show("Möchten Sie das Hauptverzeichnis ändern?", "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
@@ -591,7 +591,7 @@ namespace Automatisiertes_Kopieren
                         System.Windows.Forms.DialogResult dialogResult = dialog.ShowDialog();
                         if (dialogResult == System.Windows.Forms.DialogResult.OK)
                         {
-                            homeFolder = dialog.SelectedPath;
+                            HomeFolder = dialog.SelectedPath;
                         }
                         else
                         {
@@ -637,11 +637,11 @@ namespace Automatisiertes_Kopieren
                 var result = dialog.ShowDialog();
                 if (result.HasValue && result.Value)
                 {
-                    homeFolder = dialog.SelectedPath;
+                    HomeFolder = dialog.SelectedPath;
 
-                    if (!ValidationHelper.IsValidPath(homeFolder))
+                    if (!ValidationHelper.IsValidPath(HomeFolder))
                     {
-                        Log.Error($"Invalid home folder path: {homeFolder}");
+                        Log.Error($"Invalid home folder path: {HomeFolder}");
                         ShowError("The selected path is invalid. Please choose a valid directory.");
                         return;
                     }
@@ -649,11 +649,11 @@ namespace Automatisiertes_Kopieren
 
                     var settings = new AppSettings
                     {
-                        HomeFolderPath = homeFolder
+                        HomeFolderPath = HomeFolder
                     };
                     settings.SaveSettings(settings);
 
-                    MessageBox.Show($"Ausgewähltes Hauptverzeichnis: {homeFolder}", "Hauptverzeichnis ausgewählt", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"Ausgewähltes Hauptverzeichnis: {HomeFolder}", "Hauptverzeichnis ausgewählt", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
@@ -665,9 +665,9 @@ namespace Automatisiertes_Kopieren
 
         private void InitializeFileManager()
         {
-            if (homeFolder != null && ValidationHelper.IsValidPath(homeFolder))
+            if (HomeFolder != null && ValidationHelper.IsValidPath(HomeFolder))
             {
-                _fileManager = new FileManager(homeFolder, this);
+                _fileManager = new FileManager(HomeFolder, this);
             }
             else
             {

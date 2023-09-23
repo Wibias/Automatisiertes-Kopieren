@@ -162,11 +162,11 @@ namespace Automatisiertes_Kopieren
                 Directory.CreateDirectory(destDir);
             }
 
-            Serilog.Log.Information($"Versuche, auf die Datei zuzugreifen unter: {sourceFile}");
+            Log.Information($"Versuche, auf die Datei zuzugreifen unter: {sourceFile}");
 
             if (!File.Exists(sourceFile))
             {
-                Serilog.Log.Warning($"Datei {Path.GetFileName(sourceFile)} wurde nicht im Quellverzeichnis gefunden.");
+                Log.Warning($"Datei {Path.GetFileName(sourceFile)} wurde nicht im Quellverzeichnis gefunden.");
                 return;
             }
 
@@ -181,27 +181,47 @@ namespace Automatisiertes_Kopieren
             {
                 if (File.Exists(destFile))
                 {
+                    Log.Information($"File {destFile} already exists. Prompting user for action.");
                     MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "Datei existiert bereits", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
+                        string backupFilename = Path.Combine(destDir, $"{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak");
                         File.Move(destFile, backupFilename);
+                        Log.Information($"Existing file backed up as: {backupFilename}");
                         MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
+                        Log.Information("User chose not to copy the file.");
                         MessageBox.Show("Die Datei wurde nicht kopiert.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
                 }
 
+                Log.Information($"Copying file from {sourceFile} to {destFile}");
                 File.Copy(sourceFile, destFile, overwrite: true);
                 MessageBox.Show($"Die Datei wurde erfolgreich kopiert: {destFile}", "Erfolgreich", MessageBoxButton.OK, MessageBoxImage.Information);
             }
+            catch (IOException ioEx)
+            {
+                Log.Error($"I/O error occurred: {ioEx.Message}");
+                HandleError($"Fehler beim Kopieren der Datei wegen I/O-Problemen: {ioEx.Message}");
+            }
+            catch (UnauthorizedAccessException uaEx)
+            {
+                Log.Error($"Access denied: {uaEx.Message}");
+                HandleError($"Zugriff verweigert. Überprüfen Sie Ihre Berechtigungen und versuchen Sie es erneut.");
+            }
+            catch (System.Security.SecurityException seEx)
+            {
+                Log.Error($"Security error: {seEx.Message}");
+                HandleError($"Sicherheitsfehler: {seEx.Message}");
+            }
             catch (Exception ex)
             {
-                HandleError($"Fehler beim Kopieren der Datei: {ex.Message}");
+                Log.Error($"An unexpected error occurred: {ex.Message}");
+                HandleError($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
             }
         }
 
