@@ -10,10 +10,12 @@ namespace Automatisiertes_Kopieren
     public class FileManager
     {
         private readonly string _homeFolder;
+        private readonly MainWindow _mainWindow;
 
-        public FileManager(string homeFolder)
+        public FileManager(string homeFolder, MainWindow mainWindow)
         {
             _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
+            _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
         }
 
         public string GetTargetPath(string group, string kidName, string reportYear)
@@ -34,15 +36,12 @@ namespace Automatisiertes_Kopieren
         {
             try
             {
-                // Check if destination file exists
                 if (File.Exists(destFile))
                 {
-                    // Prompt user to overwrite or not
                     MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "Datei existiert", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        // Backup existing file with timestamp
                         string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                         File.Move(destFile, backupFilename);
                         MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -58,7 +57,7 @@ namespace Automatisiertes_Kopieren
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler beim Umbenennen der Datei: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                HandleError($"Fehler beim Umbenennen der Datei: {ex.Message}");
             }
         }
 
@@ -116,7 +115,7 @@ namespace Automatisiertes_Kopieren
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler beim Kopieren der Datei: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                HandleError($"Fehler beim Kopieren der Datei: {ex.Message}");
             }
         }
 
@@ -174,7 +173,7 @@ namespace Automatisiertes_Kopieren
             if (destDir == null || !ValidationHelper.IsValidPath(destDir))
             {
                 Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {destDir ?? "null"}");
-                MessageBox.Show($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                HandleError($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
                 return;
             }
 
@@ -202,8 +201,13 @@ namespace Automatisiertes_Kopieren
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler beim Kopieren der Datei: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                HandleError($"Fehler beim Kopieren der Datei: {ex.Message}");
             }
+        }
+
+        private void HandleError(string message)
+        {
+            _mainWindow.ShowError(message);
         }
     }
 }

@@ -147,19 +147,19 @@ namespace Automatisiertes_Kopieren
                 var result = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
                 if (result.error == "HomeFolderNotSet")
                 {
-                    MessageBox.Show("Bitte setzen Sie zuerst den Heimordner.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ShowError("Bitte setzen Sie zuerst den Heimordner.");
                     protokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 }
                 else if (result.error == "FileNotFound")
                 {
-                    MessageBox.Show("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ShowError("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
                     protokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 }
                 else if (!result.months.HasValue)
                 {
-                    MessageBox.Show("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ShowError("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.");
                     protokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 }
@@ -189,27 +189,27 @@ namespace Automatisiertes_Kopieren
             {
                 if (homeFolder != null)
                 {
-                    _fileManager = new FileManager(homeFolder);
+                    _fileManager = new FileManager(homeFolder, this);
                 }
                 else
                 {
-                    MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
                     return false;
                 }
             }
 
             if (homeFolder == null)
             {
-                MessageBox.Show("Das Hauptverzeichnis ist nicht festgelegt.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError("Das Hauptverzeichnis ist nicht festgelegt.");
                 return false;
             }
 
             // Validate kid's name
             string kidName = kidNameComboBox.Text;
-            string? validatedKidName = ValidationHelper.ValidateKidName(kidName, homeFolder, groupDropdown.Text);
+            string? validatedKidName = ValidationHelper.ValidateKidName(kidName, homeFolder, groupDropdown.Text, this);
             if (string.IsNullOrEmpty(validatedKidName))
             {
-                MessageBox.Show("Ungültiger Kinder-Name", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError("Ungültiger Kinder-Name");
                 return false;
             }
 
@@ -220,13 +220,13 @@ namespace Automatisiertes_Kopieren
                 int? parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
                 if (!parsedYear.HasValue)
                 {
-                    MessageBox.Show("Bitte geben Sie ein gültiges Jahr für den Bericht an.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ShowError("Bitte geben Sie ein gültiges Jahr für den Bericht an.");
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError(ex.Message);
                 return false;
             }
 
@@ -241,131 +241,125 @@ namespace Automatisiertes_Kopieren
 
         private void PerformFileOperations()
         {
-            string sourceFolderPath = string.Empty;
-            (string directoryPath, string fileName)? protokollbogenData = null;
-            string numericProtokollNumber = string.Empty;
+            if (!InitializeAndValidate(out string kidName, out int reportYear))
+                return;
 
-            string group = FileManager.StringUtilities.ConvertToTitleCase(groupDropdown.Text);
+            if (!PrepareFilePaths(kidName, reportYear, out string sourceFolderPath, out string targetFolderPath, out string numericProtokollNumber))
+                return;
+
+            ExecuteFileOperations(kidName, reportYear, sourceFolderPath, targetFolderPath, numericProtokollNumber);
+        }
+
+        private bool InitializeAndValidate(out string kidName, out int reportYear)
+        {
+            kidName = string.Empty;
+            reportYear = 0;
+
             if (homeFolder == null)
             {
-                MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
+                return false;
             }
 
-            string? validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, homeFolder, groupDropdown.Text);
+            string? validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, homeFolder, groupDropdown.Text, this);
             if (validatedKidName == null)
             {
-                MessageBox.Show("Ungültiger Kinder-Name.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return false;
             }
+            kidName = ConvertToTitleCase(validatedKidName);
 
-            string kidName = FileManager.StringUtilities.ConvertToTitleCase(validatedKidName);
-            string reportMonth = FileManager.StringUtilities.ConvertToTitleCase(reportMonthDropdown.Text);
             int? reportYearNullable = ValidationHelper.ValidateReportYearFromTextbox(reportYearTextbox.Text);
             if (!reportYearNullable.HasValue)
             {
-                MessageBox.Show("Ungültiges Jahr.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                ShowError("Ungültiges Jahr.");
+                return false;
             }
-            int reportYear = reportYearNullable.Value;
+            reportYear = reportYearNullable.Value;
 
-            var nameParts = kidName.Split(' ');
-            string kidFirstName = nameParts[0];
-            string kidLastName = nameParts[1];
+            return true;
+        }
 
-            var (months, error) = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
+        private bool PrepareFilePaths(string kidName, int reportYear, out string sourceFolderPath, out string targetFolderPath, out string numericProtokollNumber)
+        {
+            sourceFolderPath = string.Empty;
+            targetFolderPath = string.Empty;
+            numericProtokollNumber = string.Empty;
 
-            if (months.HasValue)
+            string group = ConvertToTitleCase(groupDropdown.Text);
+
+            var (months, error) = ExtractMonthsFromExcel(group, kidName.Split(' ')[1], kidName.Split(' ')[0]);
+            if (!months.HasValue)
             {
-                var protokollbogenResult = ValidationHelper.DetermineProtokollbogen(months.Value);
-                if (protokollbogenResult.HasValue)
-                {
-                    protokollbogenData = protokollbogenResult;
-
-                    if (homeFolder == null)
-                    {
-                        MessageBox.Show("Das Hauptverzeichnis ist nicht festgelegt.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    string cleanedHomeFolder = homeFolder.TrimEnd('\\');
-                    string cleanedDirectoryPath = protokollbogenData.Value.directoryPath.TrimStart('\\');
-
-                    sourceFolderPath = Path.Combine(cleanedHomeFolder, cleanedDirectoryPath);
-                }
+                ShowError("Fehler beim Extrahieren der Monate aus Excel.");
+                return false;
             }
 
-            else
+            var protokollbogenData = ValidationHelper.DetermineProtokollbogen(months.Value);
+            if (!protokollbogenData.HasValue)
             {
-                MessageBox.Show("Fehler beim Extrahieren der Monate aus Excel.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return false;
             }
+
+            if (homeFolder == null)
+            {
+                ShowError("Home folder is missing.");
+                return false;
+            }
+
+            if (!protokollbogenData.HasValue)
+            {
+                ShowError("Protokollbogen data is missing.");
+                return false;
+            }
+
+            sourceFolderPath = Path.Combine(homeFolder.TrimEnd('\\'), protokollbogenData.Value.directoryPath.TrimStart('\\'));
 
             if (_fileManager == null)
             {
-                MessageBox.Show("Der Dateimanager ist nicht initialisiert.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            string targetFolderPath = _fileManager.GetTargetPath(group, kidName, reportYear.ToString());
-
-            bool isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
-            bool isVorschulChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
-            bool isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
-
-            if (protokollbogenData.HasValue && !string.IsNullOrEmpty(sourceFolderPath))
-            {
-                if (isProtokollbogenChecked)
-                {
-                    _fileManager.SafeCopyFile(Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName + ".pdf"), Path.Combine(targetFolderPath, protokollbogenData.Value.fileName + ".pdf"));
-                }
+                ShowError("Der Dateimanager ist nicht initialisiert.");
+                return false;
             }
 
-            string allgemeinerFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
-
-            if (!ValidationHelper.IsValidPath(allgemeinerFilePath))
-            {
-                Log.Error($"Verzeichnis existiert nicht: {allgemeinerFilePath}");
-                return;
-            }
-
-            if (isAllgemeinerChecked && File.Exists(allgemeinerFilePath))
-            {
-                _fileManager.SafeCopyFile(allgemeinerFilePath, Path.Combine(targetFolderPath, Path.GetFileName(allgemeinerFilePath)));
-            }
-            else if (!File.Exists(allgemeinerFilePath))
-            {
-                Log.Warning($"File 'Allgemeiner-Entwicklungsbericht.pdf' not found at {allgemeinerFilePath}.");
-            }
-
-            string vorschulFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschul-Entwicklungsbericht.pdf");
-
-            if (!ValidationHelper.IsValidPath(vorschulFilePath))
-            {
-                Log.Error($"Verzeichnis existiert nicht: {vorschulFilePath}");
-                return;
-            }
-
-            if (isVorschulChecked && File.Exists(vorschulFilePath))
-            {
-                _fileManager.SafeCopyFile(vorschulFilePath, Path.Combine(targetFolderPath, Path.GetFileName(vorschulFilePath)));
-            }
-            else if (!File.Exists(vorschulFilePath))
-            {
-                Log.Warning($"Datei 'Vorschul-Entwicklungsbericht.pdf' nicht gefunden unter {vorschulFilePath}.");
-            }
+            targetFolderPath = _fileManager.GetTargetPath(group, kidName, reportYear.ToString());
 
             if (protokollbogenData.HasValue)
             {
                 numericProtokollNumber = ExtractProtokollNumber(protokollbogenData.Value.fileName + ".pdf");
-
                 if (string.IsNullOrEmpty(numericProtokollNumber))
                 {
-                    MessageBox.Show("Fehler beim Extrahieren der Protokollnummer.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
+                    ShowError("Fehler beim Extrahieren der Protokollnummer.");
+                    return false;
                 }
             }
 
-            _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
+            return true;
+        }
+
+        private void ExecuteFileOperations(string kidName, int reportYear, string sourceFolderPath, string targetFolderPath, string numericProtokollNumber)
+        {
+            bool isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
+            bool isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
+            bool isVorschulChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
+
+            CopyFileIfChecked(isProtokollbogenChecked, Path.Combine(sourceFolderPath, numericProtokollNumber + ".pdf"), Path.Combine(targetFolderPath, numericProtokollNumber + ".pdf"));
+
+            if (homeFolder == null || string.IsNullOrEmpty("Entwicklungsboegen") || string.IsNullOrEmpty("Allgemeiner-Entwicklungsbericht.pdf"))
+            {
+                ShowError("One of the path components is missing.");
+                return;
+            }
+            string allgemeinerFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
+            CopyFileIfChecked(isAllgemeinerChecked && File.Exists(allgemeinerFilePath), allgemeinerFilePath, Path.Combine(targetFolderPath, Path.GetFileName(allgemeinerFilePath)));
+
+            string vorschulFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschul-Entwicklungsbericht.pdf");
+            CopyFileIfChecked(isVorschulChecked && File.Exists(vorschulFilePath), vorschulFilePath, Path.Combine(targetFolderPath, Path.GetFileName(vorschulFilePath)));
+
+            if (_fileManager == null)
+            {
+                ShowError("Der Dateimanager ist nicht initialisiert.");
+                return;
+            }
+            _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, ConvertToTitleCase(reportMonthDropdown.Text!), reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
 
             MessageBox.Show("Dateien erfolgreich kopiert und umbenannt.", "Erfolgreich", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -374,13 +368,18 @@ namespace Automatisiertes_Kopieren
         {
             if (isChecked)
             {
+                if (_fileManager == null)
+                {
+                    ShowError("Der Dateimanager ist nicht initialisiert.");
+                    return;
+                }
                 _fileManager.SafeCopyFile(sourceFile, targetFile);
             }
         }
 
-        private void ShowError(string message)
+        public void ShowError(string message)
         {
-            MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(message, "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         private bool IsHomeFolderSelected()
@@ -401,13 +400,13 @@ namespace Automatisiertes_Kopieren
 
             if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(" "))
             {
-                MessageBox.Show("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(selectedGroup) || string.IsNullOrWhiteSpace(selectedReportMonth) || string.IsNullOrWhiteSpace(selectedReportYear))
             {
-                MessageBox.Show("Bitte füllen Sie alle geforderten Felder aus.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError("Bitte füllen Sie alle geforderten Felder aus.");
                 return false;
             }
 
@@ -643,7 +642,7 @@ namespace Automatisiertes_Kopieren
                     if (!ValidationHelper.IsValidPath(homeFolder))
                     {
                         Log.Error($"Invalid home folder path: {homeFolder}");
-                        MessageBox.Show("The selected path is invalid. Please choose a valid directory.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                        ShowError("The selected path is invalid. Please choose a valid directory.");
                         return;
                     }
                     InitializeFileManager();
@@ -668,11 +667,11 @@ namespace Automatisiertes_Kopieren
         {
             if (homeFolder != null && ValidationHelper.IsValidPath(homeFolder))
             {
-                _fileManager = new FileManager(homeFolder);
+                _fileManager = new FileManager(homeFolder, this);
             }
             else
             {
-                MessageBox.Show("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
             }
         }
 

@@ -8,8 +8,14 @@ using static Automatisiertes_Kopieren.FileManager.StringUtilities;
 
 namespace Automatisiertes_Kopieren
 {
-    public static class ValidationHelper
+    public class ValidationHelper
     {
+        private readonly MainWindow _mainWindow;
+
+        public ValidationHelper(MainWindow mainWindow)
+        {
+            _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+        }
         public static bool IsValidPath(string path)
         {
             if (!Directory.Exists(path))
@@ -69,12 +75,12 @@ namespace Automatisiertes_Kopieren
             return null;
         }
 
-        public static string? ValidateKidName(string kidName, string homeFolder, string groupDropdownText)
+        public static string? ValidateKidName(string kidName, string homeFolder, string groupDropdownText, MainWindow mainWindow)
         {
             if (string.IsNullOrWhiteSpace(kidName))
             {
                 Log.Error("Der Kinder-Name ist leer oder enthält ein Leerzeichen.");
-                MessageBox.Show("Bitte geben Sie den Namen eines Kindes an.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                HandleError("Bitte geben Sie den Namen eines Kindes an.", mainWindow);
                 return null;
             }
 
@@ -85,18 +91,16 @@ namespace Automatisiertes_Kopieren
             if (!IsValidPath(groupPath))
             {
                 Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {groupPath}");
-                MessageBox.Show($"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                HandleError($"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", mainWindow);
                 return null;
             }
 
             bool kidNameExists = System.IO.Directory.GetDirectories(groupPath).Any(dir => dir.Split(System.IO.Path.DirectorySeparatorChar).Last().Equals(kidName, StringComparison.OrdinalIgnoreCase));
 
-            Log.Information($"Kid name exists in group directory: {kidNameExists}");
-
             if (!kidNameExists)
             {
-                Log.Error($"Kid name not found in group directory: {kidName}");
-                MessageBox.Show($"Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                Log.Error($"Kinder Name wrude nicht im Gruppen-Ordner gefunden: {kidName}");
+                HandleError($"Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.", mainWindow);
                 return null;
             }
 
@@ -116,6 +120,10 @@ namespace Automatisiertes_Kopieren
             }
 
             return parsedYear;
+        }
+        private static void HandleError(string message, MainWindow mainWindow)
+        {
+            mainWindow.ShowError(message);
         }
     }
 }
