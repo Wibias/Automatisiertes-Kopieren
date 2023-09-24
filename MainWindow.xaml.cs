@@ -4,7 +4,6 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -127,52 +126,50 @@ namespace Automatisiertes_Kopieren
 
             if (e.RoutedEvent.Name == "Checked")
             {
-                HandleProtokollbogenAutoCheckbox(true);
+                HandleCheckboxChecked();
             }
             else if (e.RoutedEvent.Name == "Unchecked")
             {
-                HandleProtokollbogenAutoCheckbox(false);
+                HandleCheckboxUnchecked();
             }
 
             _isHandlingCheckboxEvent = false;
             e.Handled = true;
         }
 
-        private void HandleProtokollbogenAutoCheckbox(bool isChecked)
+        private void HandleCheckboxChecked()
         {
-            if (isChecked)
-            {
-                string group = groupDropdown.Text;
-                string kidName = kidNameComboBox.Text;
-                var nameParts = kidName.Split(' ');
-                string kidFirstName = nameParts[0];
-                string kidLastName = nameParts.Length > 1 ? nameParts[1] : "";
+            string group = groupDropdown.Text;
+            string kidName = kidNameComboBox.Text;
+            var nameParts = kidName.Split(' ');
+            string kidFirstName = nameParts[0];
+            string kidLastName = nameParts.Length > 1 ? nameParts[1] : "";
 
-                var result = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
-                if (result.error == "HomeFolderNotSet")
-                {
-                    ShowError("Bitte setzen Sie zuerst den Heimordner.");
-                    protokollbogenAutoCheckbox.IsChecked = false;
-                    return;
-                }
-                else if (result.error == "FileNotFound")
-                {
-                    ShowError("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
-                    protokollbogenAutoCheckbox.IsChecked = false;
-                    return;
-                }
-                else if (!result.months.HasValue)
-                {
-                    ShowError("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.");
-                    protokollbogenAutoCheckbox.IsChecked = false;
-                    return;
-                }
-                _selectedProtokollbogenMonth = (int)Math.Round(result.months.Value);
-            }
-            else
+            var result = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
+            if (result.error == "HomeFolderNotSet")
             {
-                _selectedProtokollbogenMonth = null;
+                ShowError("Bitte setzen Sie zuerst den Heimordner.");
+                protokollbogenAutoCheckbox.IsChecked = false;
+                return;
             }
+            else if (result.error == "FileNotFound")
+            {
+                ShowError("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
+                protokollbogenAutoCheckbox.IsChecked = false;
+                return;
+            }
+            else if (!result.months.HasValue)
+            {
+                ShowError("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.");
+                protokollbogenAutoCheckbox.IsChecked = false;
+                return;
+            }
+            _selectedProtokollbogenMonth = (int)Math.Round(result.months.Value);
+        }
+
+        private void HandleCheckboxUnchecked()
+        {
+            _selectedProtokollbogenMonth = null;
         }
 
         private void OnGenerateButtonClicked(object sender, RoutedEventArgs e)
@@ -186,53 +183,30 @@ namespace Automatisiertes_Kopieren
 
         private bool IsValidInput()
         {
-            if (!IsHomeFolderSelected() || !AreAllRequiredFieldsFilled())
-                return false;
+            return IsHomeFolderSet() && AreAllRequiredFieldsFilled() && IsKidNameValid() && IsReportYearValid();
+        }
 
-            if (_fileManager == null)
-            {
-                if (HomeFolder != null)
-                {
-                    _fileManager = new FileManager(HomeFolder, this);
-                }
-                else
-                {
-                    ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
-                    return false;
-                }
-            }
+        private bool IsHomeFolderSet()
+        {
+            return !string.IsNullOrEmpty(HomeFolder);
+        }
 
+        private bool IsKidNameValid()
+        {
             if (HomeFolder == null)
             {
-                ShowError("Das Hauptverzeichnis ist nicht festgelegt.");
                 return false;
             }
-
             string kidName = kidNameComboBox.Text;
             string? validatedKidName = ValidationHelper.ValidateKidName(kidName, HomeFolder, groupDropdown.Text, this);
-            if (string.IsNullOrEmpty(validatedKidName))
-            {
-                ShowError("Ungültiger Kinder-Name");
-                return false;
-            }
+            return !string.IsNullOrEmpty(validatedKidName);
+        }
 
+        private bool IsReportYearValid()
+        {
             string reportYearText = reportYearTextbox.Text;
-            try
-            {
-                int? parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
-                if (!parsedYear.HasValue)
-                {
-                    ShowError("Bitte geben Sie ein gültiges Jahr für den Bericht an.");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex.Message);
-                return false;
-            }
-
-            return true;
+            int? parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
+            return parsedYear.HasValue;
         }
 
         private static string ExtractProtokollNumber(string fileName)
@@ -455,6 +429,16 @@ namespace Automatisiertes_Kopieren
         private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
         {
             _autoComplete.KidNameComboBox_Loaded(sender, e);
+        }
+
+        private void KidNameComboBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            _autoComplete.OnKidNameComboBoxPreviewTextInput(sender, e);
+        }
+
+        private void KidNameComboBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            _autoComplete.OnKidNameComboBoxPreviewKeyDown(sender, e);
         }
 
         public void SelectHomeFolder()
