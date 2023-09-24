@@ -120,7 +120,7 @@ namespace Automatisiertes_Kopieren
             {
                 string fullPath = Path.Combine(_mainWindow.HomeFolder, groupPath);
 
-                if (!ValidationHelper.IsValidPath(fullPath))
+                if (!ValidationHelper.IsValidDirectoryPath(fullPath))
                 {
                     Log.Error($"Verzeichnis existiert nicht: {fullPath}");
                     return new List<string>();

@@ -1,5 +1,6 @@
 ﻿using Serilog;
 using System;
+using System.Windows;
 
 namespace Automatisiertes_Kopieren
 {
@@ -15,12 +16,21 @@ namespace Automatisiertes_Kopieren
         public void LogAndShowError(string logMessage, string userMessage)
         {
             Log.Error(logMessage);
-            _mainWindow.ShowError(userMessage);
+            ShowError(userMessage);
+        }
+        public void LogAndShowInformation(string logMessage, string userMessage)
+        {
+            Log.Information(logMessage);
+            ShowInformation(userMessage);
         }
 
-        public void HandleError(string message)
+        public void ShowError(string message)
         {
-            _mainWindow.ShowError(message);
+            MessageBox.Show(message, "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        public void ShowInformation(string message, string title = "Information")
+        {
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }
