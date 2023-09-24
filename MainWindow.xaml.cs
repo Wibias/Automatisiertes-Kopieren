@@ -358,13 +358,13 @@ namespace Automatisiertes_Kopieren
             return true;
         }
 
-        private void ExecuteFileOperations(string kidName, int reportYear, string sourceFolderPath, string targetFolderPath, string numericProtokollNumber, string protokollbogenData)
+        private void ExecuteFileOperations(string kidName, int reportYear, string sourceFolderPath, string targetFolderPath, string numericProtokollNumber)
         {
             bool isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
             bool isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
             bool isVorschulChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
 
-            CopyFileIfChecked(isProtokollbogenChecked, Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName + ".pdf"), Path.Combine(targetFolderPath, protokollbogenData.Value.fileName + ".pdf"));
+            CopyFileIfChecked(isProtokollbogenChecked, Path.Combine(sourceFolderPath, numericProtokollNumber + ".pdf"), Path.Combine(targetFolderPath, numericProtokollNumber + ".pdf"));
 
             if (HomeFolder == null || string.IsNullOrEmpty("Entwicklungsboegen") || string.IsNullOrEmpty("Allgemeiner-Entwicklungsbericht.pdf"))
             {
