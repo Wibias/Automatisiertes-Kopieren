@@ -22,6 +22,7 @@ namespace Automatisiertes_Kopieren
         private bool _isHandlingCheckboxEvent = false;
         private int _previousGroupSelectionIndex = 0;
         private List<string> _allKidNames = new List<string>();
+        private ValidationHelper _validator;
 
         public MainWindow()
         {
@@ -33,6 +34,7 @@ namespace Automatisiertes_Kopieren
                 .CreateLogger();
             InitializeComponent();
             _autoComplete = new AutoComplete(this);
+            _validator = new ValidationHelper(this);
             var settings = new AppSettings().LoadSettings();
             if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
             {
@@ -188,25 +190,45 @@ namespace Automatisiertes_Kopieren
 
         private bool IsHomeFolderSet()
         {
-            return !string.IsNullOrEmpty(HomeFolder);
+            if (string.IsNullOrEmpty(HomeFolder))
+            {
+                LogAndShowError("HomeFolder is not set.", "Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
+                return false;
+            }
+            return true;
         }
 
         private bool IsKidNameValid()
         {
             if (HomeFolder == null)
             {
+                LogAndShowError("HomeFolder is null during kid name validation.", "Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
                 return false;
             }
+
             string kidName = kidNameComboBox.Text;
-            string? validatedKidName = ValidationHelper.ValidateKidName(kidName, HomeFolder, groupDropdown.Text, this);
-            return !string.IsNullOrEmpty(validatedKidName);
+            string? validatedKidName = _validator.IsKidNameValid();
+
+            if (string.IsNullOrEmpty(validatedKidName))
+            {
+                LogAndShowError($"Kid name validation failed for name: {kidName}", "Ungültiger Kindername. Bitte überprüfen Sie den eingegebenen Namen.");
+                return false;
+            }
+
+            return true;
         }
 
         private bool IsReportYearValid()
         {
             string reportYearText = reportYearTextbox.Text;
-            int? parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
-            return parsedYear.HasValue;
+            int? parsedYear = _validator.IsReportYearValid();
+
+            if (!parsedYear.HasValue)
+            {
+                LogAndShowError($"Report year validation failed for year: {reportYearText}", "Ungültiges Jahr.");
+                return false;
+            }
+            return true;
         }
 
         private static string ExtractProtokollNumber(string fileName)
@@ -237,14 +259,14 @@ namespace Automatisiertes_Kopieren
                 return false;
             }
 
-            string? validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, HomeFolder, groupDropdown.Text, this);
+            string? validatedKidName = _validator.IsKidNameValid();
             if (validatedKidName == null)
             {
                 return false;
             }
             kidName = ConvertToTitleCase(validatedKidName);
 
-            int? reportYearNullable = ValidationHelper.ValidateReportYearFromTextbox(reportYearTextbox.Text);
+            int? reportYearNullable = _validator.IsReportYearValid();
             if (!reportYearNullable.HasValue)
             {
                 ShowError("Ungültiges Jahr.");
@@ -255,6 +277,7 @@ namespace Automatisiertes_Kopieren
             return true;
         }
 
+
         private bool PrepareFilePaths(string kidName, int reportYear, out string sourceFolderPath, out string targetFolderPath, out string numericProtokollNumber)
         {
             sourceFolderPath = string.Empty;
@@ -262,15 +285,14 @@ namespace Automatisiertes_Kopieren
             numericProtokollNumber = string.Empty;
 
             string group = ConvertToTitleCase(groupDropdown.Text);
-
-            var (months, error) = ExtractMonthsFromExcel(group, kidName.Split(' ')[1], kidName.Split(' ')[0]);
+            var (months, _) = ExtractMonthsFromExcel(group, kidName.Split(' ')[1], kidName.Split(' ')[0]);
             if (!months.HasValue)
             {
                 ShowError("Fehler beim Extrahieren der Monate aus Excel.");
                 return false;
             }
 
-            var protokollbogenData = ValidationHelper.DetermineProtokollbogen(months.Value);
+            var protokollbogenData = _validator.DetermineProtokollbogen(months.Value);
             if (!protokollbogenData.HasValue)
             {
                 return false;
@@ -356,6 +378,12 @@ namespace Automatisiertes_Kopieren
         public void ShowError(string message)
         {
             MessageBox.Show(message, "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        private void LogAndShowError(string logMessage, string userMessage)
+        {
+            Log.Error(logMessage);
+            ShowError(userMessage);
         }
 
         private bool IsHomeFolderSelected()

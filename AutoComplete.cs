@@ -14,6 +14,13 @@ namespace Automatisiertes_Kopieren
         private List<string> _allKidNames = new List<string>();
         private MainWindow _mainWindow;
 
+        private static readonly Dictionary<string, string> GroupPaths = new Dictionary<string, string>
+        {
+            { "Bären", "Entwicklungsberichte\\Baeren Entwicklungsberichte\\Aktuell" },
+            { "Löwen", "Entwicklungsberichte\\Loewen Entwicklungsberichte\\Aktuell" },
+            { "Schnecken", "Entwicklungsberichte\\Schnecken Beobachtungsberichte\\Aktuell" }
+        };
+
         public AutoComplete(MainWindow mainWindow)
         {
             _mainWindow = mainWindow;
@@ -21,7 +28,7 @@ namespace Automatisiertes_Kopieren
 
         public void OnKidNameComboBoxLoaded(object sender, RoutedEventArgs e)
         {
-            var textBox = _mainWindow.kidNameComboBox.Template.FindName("PART_EditableTextBox", _mainWindow.kidNameComboBox) as TextBox;
+            var textBox = GetEditableTextBoxFromComboBox();
             if (textBox != null)
             {
                 textBox.TextChanged += OnKidNameComboBoxTextChanged;
@@ -40,24 +47,12 @@ namespace Automatisiertes_Kopieren
         {
             if (_mainWindow.kidNameComboBox == null) return;
 
-            var textBox = _mainWindow.kidNameComboBox.Template.FindName("PART_EditableTextBox", _mainWindow.kidNameComboBox) as TextBox;
+            var textBox = GetEditableTextBoxFromComboBox();
             if (textBox == null) return;
 
             string futureText = textBox.Text.Insert(textBox.CaretIndex, e.Text);
 
-            var filteredNames = _allKidNames.Where(name => name.StartsWith(futureText, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            if (filteredNames.Count == 0)
-            {
-                _mainWindow.kidNameComboBox.ItemsSource = _allKidNames;
-                _mainWindow.kidNameComboBox.IsDropDownOpen = false;
-                return;
-            }
-
-            _mainWindow.kidNameComboBox.ItemsSource = filteredNames;
-            _mainWindow.kidNameComboBox.Text = futureText;
-            textBox.CaretIndex = futureText.Length;
-            _mainWindow.kidNameComboBox.IsDropDownOpen = true;
+            FilterAndDisplayKidNames(futureText);
 
             e.Handled = true;
         }
@@ -90,19 +85,7 @@ namespace Automatisiertes_Kopieren
 
             _isUpdatingComboBox = true;
 
-            string input = _mainWindow.kidNameComboBox.Text;
-
-            var filteredNames = _allKidNames.Where(name => name.StartsWith(input, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            _mainWindow.kidNameComboBox.ItemsSource = filteredNames.Count > 0 ? filteredNames : _allKidNames;
-            _mainWindow.kidNameComboBox.Text = input;
-            _mainWindow.kidNameComboBox.IsDropDownOpen = filteredNames.Count > 0;
-
-            var textBox = _mainWindow.kidNameComboBox.Template.FindName("PART_EditableTextBox", _mainWindow.kidNameComboBox) as TextBox;
-            if (textBox != null)
-            {
-                textBox.SelectionStart = input.Length;
-            }
+            FilterAndDisplayKidNames(_mainWindow.kidNameComboBox.Text);
 
             _isUpdatingComboBox = false;
         }
@@ -119,22 +102,16 @@ namespace Automatisiertes_Kopieren
 
         public List<string> GetKidNamesForGroup(string groupName)
         {
-            string path = string.Empty;
-            switch (groupName)
+            if (GroupPaths.TryGetValue(groupName, out var path))
             {
-                case "Bären":
-                    path = "Entwicklungsberichte\\Baeren Entwicklungsberichte\\Aktuell";
-                    break;
-                case "Löwen":
-                    path = "Entwicklungsberichte\\Loewen Entwicklungsberichte\\Aktuell";
-                    break;
-                case "Schnecken":
-                    path = "Entwicklungsberichte\\Schnecken Beobachtungsberichte\\Aktuell";
-                    break;
+                Log.Information($"Constructed Path for {groupName}: {path}");
+                return GetKidNamesFromDirectory(path);
             }
-            Log.Information($"Constructed Path for {groupName}: {path}");
-
-            return GetKidNamesFromDirectory(path);
+            else
+            {
+                Log.Warning($"Invalid group name: {groupName}");
+                return new List<string>();
+            }
         }
 
         private List<string> GetKidNamesFromDirectory(string groupPath)
@@ -164,6 +141,26 @@ namespace Automatisiertes_Kopieren
                 Log.Warning("_homeFolder ist nicht gesetzt.");
             }
             return new List<string>();
+        }
+
+        private TextBox? GetEditableTextBoxFromComboBox()
+        {
+            return _mainWindow.kidNameComboBox.Template.FindName("PART_EditableTextBox", _mainWindow.kidNameComboBox) as TextBox;
+        }
+
+        private void FilterAndDisplayKidNames(string input)
+        {
+            var filteredNames = _allKidNames.Where(name => name.StartsWith(input, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            _mainWindow.kidNameComboBox.ItemsSource = filteredNames.Count > 0 ? filteredNames : _allKidNames;
+            _mainWindow.kidNameComboBox.Text = input;
+            _mainWindow.kidNameComboBox.IsDropDownOpen = filteredNames.Count > 0;
+
+            var textBox = GetEditableTextBoxFromComboBox();
+            if (textBox != null)
+            {
+                textBox.SelectionStart = input.Length;
+            }
         }
     }
 }

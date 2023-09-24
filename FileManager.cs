@@ -11,11 +11,13 @@ namespace Automatisiertes_Kopieren
     {
         private readonly string _homeFolder;
         private readonly MainWindow _mainWindow;
+        private readonly LoggingService _loggingService;
 
         public FileManager(string homeFolder, MainWindow mainWindow)
         {
             _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+            _loggingService = new LoggingService(mainWindow);
         }
 
         public string GetTargetPath(string group, string kidName, string reportYear)
@@ -57,7 +59,7 @@ namespace Automatisiertes_Kopieren
             }
             catch (Exception ex)
             {
-                HandleError($"Fehler beim Umbenennen der Datei: {ex.Message}");
+                _loggingService.HandleError($"Fehler beim Umbenennen der Datei: {ex.Message}");
             }
         }
 
@@ -104,18 +106,6 @@ namespace Automatisiertes_Kopieren
                     string newFileName = $"{kidName}_{protokollNumber}_Monate_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
-            }
-        }
-
-        public void CopyFile(string sourcePath, string targetPath)
-        {
-            try
-            {
-                File.Copy(sourcePath, targetPath, overwrite: true);
-            }
-            catch (Exception ex)
-            {
-                HandleError($"Fehler beim Kopieren der Datei: {ex.Message}");
             }
         }
 
@@ -173,7 +163,7 @@ namespace Automatisiertes_Kopieren
             if (destDir == null || !ValidationHelper.IsValidPath(destDir))
             {
                 Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {destDir ?? "null"}");
-                HandleError($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
+                _loggingService.HandleError($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
                 return;
             }
 
@@ -206,28 +196,23 @@ namespace Automatisiertes_Kopieren
             catch (IOException ioEx)
             {
                 Log.Error($"I/O error occurred: {ioEx.Message}");
-                HandleError($"Fehler beim Kopieren der Datei wegen I/O-Problemen: {ioEx.Message}");
+                _loggingService.HandleError($"Fehler beim Kopieren der Datei wegen I/O-Problemen: {ioEx.Message}");
             }
             catch (UnauthorizedAccessException uaEx)
             {
                 Log.Error($"Access denied: {uaEx.Message}");
-                HandleError($"Zugriff verweigert. Überprüfen Sie Ihre Berechtigungen und versuchen Sie es erneut.");
+                _loggingService.HandleError($"Zugriff verweigert. Überprüfen Sie Ihre Berechtigungen und versuchen Sie es erneut.");
             }
             catch (System.Security.SecurityException seEx)
             {
                 Log.Error($"Security error: {seEx.Message}");
-                HandleError($"Sicherheitsfehler: {seEx.Message}");
+                _loggingService.HandleError($"Sicherheitsfehler: {seEx.Message}");
             }
             catch (Exception ex)
             {
                 Log.Error($"An unexpected error occurred: {ex.Message}");
-                HandleError($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
+                _loggingService.HandleError($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
             }
-        }
-
-        private void HandleError(string message)
-        {
-            _mainWindow.ShowError(message);
         }
     }
 }
