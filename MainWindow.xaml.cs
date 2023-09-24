@@ -18,6 +18,7 @@ namespace Automatisiertes_Kopieren
     {
 
         private FileManager? _fileManager;
+        private AutoComplete _autoComplete;
         private int? _selectedProtokollbogenMonth;
         private bool _isHandlingCheckboxEvent = false;
         private int _previousGroupSelectionIndex = 0;
@@ -32,6 +33,7 @@ namespace Automatisiertes_Kopieren
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
                 .CreateLogger();
             InitializeComponent();
+            _autoComplete = new AutoComplete(this);
             var settings = new AppSettings().LoadSettings();
             if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
             {
@@ -55,7 +57,7 @@ namespace Automatisiertes_Kopieren
                 _homeFolder = value;
                 if (groupDropdown.SelectedIndex == 0 && !string.IsNullOrEmpty(_homeFolder))
                 {
-                    var defaultKidNames = GetKidNamesForGroup("Bären");
+                    var defaultKidNames = _autoComplete.GetKidNamesForGroup("Bären");
                     kidNameComboBox.ItemsSource = defaultKidNames;
                 }
             }
@@ -413,172 +415,7 @@ namespace Automatisiertes_Kopieren
             return true;
         }
 
-        private List<string> GetKidNamesFromDirectory(string groupPath)
-        {
-            if (HomeFolder != null)
-            {
-                string fullPath = Path.Combine(HomeFolder, groupPath);
-
-                if (!ValidationHelper.IsValidPath(fullPath))
-                {
-                    Log.Error($"Verzeichnis existiert nicht: {fullPath}");
-                    return new List<string>();
-                };
-
-                if (Directory.Exists(fullPath))
-                {
-                    var directories = Directory.GetDirectories(fullPath);
-                    return directories.Select(Path.GetFileName).OfType<string>().ToList();
-                }
-                else
-                {
-                    Log.Warning($"Verzeichnis existiert nicht: {fullPath}");
-                }
-            }
-            else
-            {
-                Log.Warning("_homeFolder ist nicht gesetzt.");
-            }
-            return new List<string>();
-        }
-
-        private List<string> GetKidNamesForGroup(string groupName)
-        {
-            string path = string.Empty;
-            switch (groupName)
-            {
-                case "Bären":
-                    path = "Entwicklungsberichte\\Baeren Entwicklungsberichte\\Aktuell";
-                    break;
-                case "Löwen":
-                    path = "Entwicklungsberichte\\Loewen Entwicklungsberichte\\Aktuell";
-                    break;
-                case "Schnecken":
-                    path = "Entwicklungsberichte\\Schnecken Beobachtungsberichte\\Aktuell";
-                    break;
-            }
-            Log.Information($"Constructed Path for {groupName}: {path}");
-
-            if (!ValidationHelper.IsValidPath(path))
-            {
-                Log.Error($"Invalid path constructed for group {groupName}: {path}");
-                return new List<string>();
-            }
-
-            return GetKidNamesFromDirectory(path);
-        }
-
-        private void GroupDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            string? selectedGroup = groupDropdown.SelectedItem?.ToString();
-
-            if (!string.IsNullOrEmpty(selectedGroup))
-            {
-                List<string> kidNames = GetKidNamesForGroup(selectedGroup);
-
-                kidNameComboBox.ItemsSource = kidNames;
-            }
-        }
-
-        private void OnKidNameComboBoxLoaded(object sender, RoutedEventArgs e)
-        {
-            var textBox = kidNameComboBox.Template.FindName("PART_EditableTextBox", kidNameComboBox) as TextBox;
-            if (textBox != null)
-            {
-                textBox.TextChanged += OnKidNameComboBoxTextChanged;
-            }
-
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (groupDropdown.SelectedIndex == 0)
-                {
-                    OnGroupSelected(groupDropdown, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, new List<object>(), new List<object> { groupDropdown.SelectedItem }));
-                }
-            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
-        }
-
-        private void OnKidNameComboBoxPreviewTextInput(object sender, TextCompositionEventArgs e)
-        {
-            if (kidNameComboBox == null) return;
-
-            var textBox = kidNameComboBox.Template.FindName("PART_EditableTextBox", kidNameComboBox) as TextBox;
-            if (textBox == null) return;
-
-            string futureText = textBox.Text.Insert(textBox.CaretIndex, e.Text);
-
-            var filteredNames = _allKidNames.Where(name => name.StartsWith(futureText, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            if (filteredNames.Count == 0)
-            {
-                kidNameComboBox.ItemsSource = _allKidNames;
-                kidNameComboBox.IsDropDownOpen = false;
-                return;
-            }
-
-            kidNameComboBox.ItemsSource = filteredNames;
-            kidNameComboBox.Text = futureText;
-            textBox.CaretIndex = futureText.Length;
-            kidNameComboBox.IsDropDownOpen = true;
-
-            e.Handled = true;
-        }
-
-        private void OnKidNameComboBoxPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Down || e.Key == Key.Up)
-            {
-                if (kidNameComboBox.IsDropDownOpen)
-                {
-                    e.Handled = false;
-                }
-            }
-            else if (e.Key == Key.Enter)
-            {
-                if (kidNameComboBox.IsDropDownOpen)
-                {
-                    kidNameComboBox.SelectedItem = kidNameComboBox.Items.CurrentItem;
-                    kidNameComboBox.IsDropDownOpen = false;
-                }
-            }
-        }
-
-        private bool _isUpdatingComboBox = false;
-
-        private void OnKidNameComboBoxTextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isUpdatingComboBox) return;
-            if (kidNameComboBox == null) return;
-
-            _isUpdatingComboBox = true;
-
-            string input = kidNameComboBox.Text;
-
-            var filteredNames = _allKidNames.Where(name => name.StartsWith(input, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            kidNameComboBox.ItemsSource = filteredNames.Count > 0 ? filteredNames : _allKidNames;
-            kidNameComboBox.Text = input;
-            kidNameComboBox.IsDropDownOpen = filteredNames.Count > 0;
-
-            var textBox = kidNameComboBox.Template.FindName("PART_EditableTextBox", kidNameComboBox) as TextBox;
-            if (textBox != null)
-            {
-                textBox.SelectionStart = input.Length;
-            }
-
-            _isUpdatingComboBox = false;
-        }
-
-        private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (groupDropdown.SelectedIndex == 0)
-            {
-                var defaultKidNames = GetKidNamesForGroup("Bären");
-                _allKidNames = defaultKidNames;
-                kidNameComboBox.ItemsSource = _allKidNames;
-            }
-        }
-
-        private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
+        public void OnGroupSelected(object sender, SelectionChangedEventArgs e)
         {
             if (string.IsNullOrEmpty(HomeFolder))
             {
@@ -586,18 +423,7 @@ namespace Automatisiertes_Kopieren
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
-                    {
-                        System.Windows.Forms.DialogResult dialogResult = dialog.ShowDialog();
-                        if (dialogResult == System.Windows.Forms.DialogResult.OK)
-                        {
-                            HomeFolder = dialog.SelectedPath;
-                        }
-                        else
-                        {
-                            return;
-                        }
-                    }
+                    SelectHomeFolder();
                 }
                 else
                 {
@@ -611,8 +437,8 @@ namespace Automatisiertes_Kopieren
             {
                 Log.Information($"e.AddedItems[0] type: {e.AddedItems[0]?.GetType().Name ?? "null"}, value: {e.AddedItems[0]}");
                 Log.Information($"Selected group: {selectedGroup}");
-                var kidNames = GetKidNamesForGroup(selectedGroup);
-                _allKidNames = GetKidNamesForGroup(selectedGroup);
+                var kidNames = _autoComplete.GetKidNamesForGroup(selectedGroup);
+                _allKidNames = kidNames;
                 kidNameComboBox.ItemsSource = _allKidNames;
             }
             else if (e.AddedItems.Count > 0)
@@ -626,7 +452,12 @@ namespace Automatisiertes_Kopieren
             }
         }
 
-        private void SelectHomeFolder()
+        private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            _autoComplete.KidNameComboBox_Loaded(sender, e);
+        }
+
+        public void SelectHomeFolder()
         {
             Log.Information("SelectHomeFolder method called");
             var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
