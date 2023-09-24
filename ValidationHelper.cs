@@ -10,12 +10,10 @@ namespace Automatisiertes_Kopieren
     public class ValidationHelper
     {
         private readonly MainWindow _mainWindow;
-        private readonly LoggingService _loggingService;
 
         public ValidationHelper(MainWindow mainWindow)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
-            _loggingService = new LoggingService(mainWindow);
         }
         public static bool IsValidPath(string path)
         {
@@ -47,7 +45,7 @@ namespace Automatisiertes_Kopieren
             return true;
         }
 
-        public (string directoryPath, string fileName)? DetermineProtokollbogen(double monthsAndDays)
+        public static (string directoryPath, string fileName)? DetermineProtokollbogen(double monthsAndDays)
         {
             Dictionary<double, (string directoryPath, string fileName)> protokollbogenMap = new Dictionary<double, (string, string)>
             {
@@ -72,99 +70,59 @@ namespace Automatisiertes_Kopieren
                 }
             }
 
-            _loggingService.LogAndShowError($"Kein Protokollbogen für folgenden Monatswert gefunden: {monthsAndDays}", "Ein Fehler ist aufgetreten. Bitte überprüfen Sie die Eingaben.");
+            Serilog.Log.Warning($"Kein Protokollbogen für folgenden Monatswert gefunden: {monthsAndDays}");
             return null;
         }
 
-        public bool IsValidInput()
+        public static string? ValidateKidName(string kidName, string homeFolder, string groupDropdownText, MainWindow mainWindow)
         {
-            return IsHomeFolderSet() && AreAllRequiredFieldsFilled() && IsKidNameValid() != null && IsReportYearValid() != null;
-        }
-
-        public bool IsHomeFolderSet()
-        {
-            if (string.IsNullOrEmpty(_mainWindow.HomeFolder))
-            {
-                _loggingService.LogAndShowError("HomeFolder is not set.", "Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
-                return false;
-            }
-            return true;
-        }
-
-        public string? IsKidNameValid()
-        {
-            if (_mainWindow.HomeFolder == null)
-            {
-                _loggingService.LogAndShowError("HomeFolder is null during kid name validation.", "Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
-                return null;
-            }
-            string kidName = _mainWindow.kidNameComboBox.Text;
-
             if (string.IsNullOrWhiteSpace(kidName))
             {
-                _loggingService.LogAndShowError("Der Kinder-Name ist leer oder enthält ein Leerzeichen.", "Bitte geben Sie den Namen eines Kindes an.");
+                Log.Error("Der Kinder-Name ist leer oder enthält ein Leerzeichen.");
+                HandleError("Bitte geben Sie den Namen eines Kindes an.", mainWindow);
                 return null;
             }
 
-            string groupFolder = ConvertSpecialCharacters(_mainWindow.groupDropdown.Text, ConversionType.Umlaute);
-            string groupPath = $@"{_mainWindow.HomeFolder}\Entwicklungsberichte\{groupFolder} Entwicklungsberichte\Aktuell";
+            string groupFolder = ConvertSpecialCharacters(groupDropdownText, ConversionType.Umlaute);
+
+            string groupPath = $@"{homeFolder}\Entwicklungsberichte\{groupFolder} Entwicklungsberichte\Aktuell";
 
             if (!IsValidPath(groupPath))
             {
-                _loggingService.LogAndShowError($"Der Gruppenpfad ist nicht gültig oder zugänglich: {groupPath}", $"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
+                Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {groupPath}");
+                HandleError($"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", mainWindow);
                 return null;
             }
 
-            bool kidNameExists = Directory.GetDirectories(groupPath).Any(dir => dir.Split(System.IO.Path.DirectorySeparatorChar).Last().Equals(kidName, StringComparison.OrdinalIgnoreCase));
+            bool kidNameExists = System.IO.Directory.GetDirectories(groupPath).Any(dir => dir.Split(System.IO.Path.DirectorySeparatorChar).Last().Equals(kidName, StringComparison.OrdinalIgnoreCase));
 
             if (!kidNameExists)
             {
-                _loggingService.LogAndShowError($"Kinder Name wurde nicht im Gruppen-Ordner gefunden: {kidName}", $"Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.");
+                Log.Error($"Kinder Name wrude nicht im Gruppen-Ordner gefunden: {kidName}");
+                HandleError($"Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.", mainWindow);
                 return null;
             }
 
             return kidName;
         }
 
-        public int? IsReportYearValid()
+        public static int? ValidateReportYearFromTextbox(string reportYearText)
         {
-            string reportYearText = _mainWindow.reportYearTextbox.Text;
-
             if (string.IsNullOrWhiteSpace(reportYearText))
             {
-                _loggingService.LogAndShowError("Report year is empty.", "Bitte geben Sie ein gültiges Jahr ein.");
                 return null;
             }
 
             if (!int.TryParse(reportYearText, out int parsedYear) || parsedYear < 2023 || parsedYear > 2099)
             {
-                _loggingService.LogAndShowError("Das Jahr muss aus genau 4 Ziffern bestehen, und zwischen 2023 und 2099 liegen.", "Ungültiges Jahr. Bitte geben Sie ein gültiges Jahr zwischen 2023 und 2099 ein.");
-                return null;
+                throw new ArgumentException("Das Jahr muss aus genau 4 Ziffern bestehen, und zwischen 2023 und 2099 liegen. Bitte geben Sie ein gültiges Jahr ein.");
             }
 
             return parsedYear;
         }
-
-        public bool AreAllRequiredFieldsFilled()
+        private static void HandleError(string message, MainWindow mainWindow)
         {
-            string selectedGroup = _mainWindow.groupDropdown.Text;
-            string childName = _mainWindow.kidNameComboBox.Text;
-            string selectedReportMonth = _mainWindow.reportMonthDropdown.Text;
-            string selectedReportYear = _mainWindow.reportYearTextbox.Text;
-
-            if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(" "))
-            {
-                _mainWindow.ShowError("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.");
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(selectedGroup) || string.IsNullOrWhiteSpace(selectedReportMonth) || string.IsNullOrWhiteSpace(selectedReportYear))
-            {
-                _mainWindow.ShowError("Bitte füllen Sie alle geforderten Felder aus.");
-                return false;
-            }
-
-            return true;
+            mainWindow.ShowError(message);
         }
     }
 }
