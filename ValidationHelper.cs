@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace Automatisiertes_Kopieren
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _loggingService = new LoggingService(mainWindow);
         }
-        public static bool IsValidDirectoryPath(string path)
+        public static bool IsValidPath(string path)
         {
             if (!Directory.Exists(path))
                 return false;
@@ -37,23 +38,6 @@ namespace Automatisiertes_Kopieren
                 {
                     // Do nothing, just create the file and close it
                 }
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public static bool IsValidFilePath(string? path)
-        {
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
-                return false;
-
-            try
-            {
-                Path.GetFullPath(path);
             }
             catch
             {
@@ -125,7 +109,7 @@ namespace Automatisiertes_Kopieren
             string groupFolder = ConvertSpecialCharacters(_mainWindow.groupDropdown.Text, ConversionType.Umlaute);
             string groupPath = $@"{_mainWindow.HomeFolder}\Entwicklungsberichte\{groupFolder} Entwicklungsberichte\Aktuell";
 
-            if (!IsValidDirectoryPath(groupPath))
+            if (!IsValidPath(groupPath))
             {
                 _loggingService.LogAndShowError($"Der Gruppenpfad ist nicht gültig oder zugänglich: {groupPath}", $"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
                 return null;
@@ -170,13 +154,13 @@ namespace Automatisiertes_Kopieren
 
             if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(" "))
             {
-                _loggingService.ShowError("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.");
+                _mainWindow.ShowError("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(selectedGroup) || string.IsNullOrWhiteSpace(selectedReportMonth) || string.IsNullOrWhiteSpace(selectedReportYear))
             {
-                _loggingService.ShowError("Bitte füllen Sie alle geforderten Felder aus.");
+                _mainWindow.ShowError("Bitte füllen Sie alle geforderten Felder aus.");
                 return false;
             }
 

@@ -20,37 +20,21 @@ namespace Automatisiertes_Kopieren
         private AutoComplete _autoComplete;
         private int? _selectedProtokollbogenMonth;
         private bool _isHandlingCheckboxEvent = false;
-        private bool _isWindowLoaded = false;
         private int _previousGroupSelectionIndex = 0;
         private List<string> _allKidNames = new List<string>();
         private ValidationHelper _validator;
-        private readonly LoggingService _loggingService;
-        private void InitializeFileManager()
-        {
-            if (HomeFolder != null && ValidationHelper.IsValidDirectoryPath(HomeFolder))
-            {
-                _fileManager = new FileManager(HomeFolder, this);
-            }
-            else
-            {
-                _loggingService.ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
-            }
-        }
+
         public MainWindow()
         {
-            InitializeComponent();
-
-            _autoComplete = new AutoComplete(this);
-            _validator = new ValidationHelper(this);
-            _loggingService = new LoggingService(this);
-
             string logDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Automatisiertes_Kopieren", "logs");
             string logFilePath = Path.Combine(logDirectory, "log-.txt");
 
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
                 .CreateLogger();
-
+            InitializeComponent();
+            _autoComplete = new AutoComplete(this);
+            _validator = new ValidationHelper(this);
             var settings = new AppSettings().LoadSettings();
             if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
             {
@@ -61,14 +45,9 @@ namespace Automatisiertes_Kopieren
                 SelectHomeFolder();
             }
 
-            InitializeFileManager();
-
-            this.Loaded += MainWindow_Loaded;
-
             protokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
             protokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
         }
-
 
         private string? _homeFolder;
         public string? HomeFolder
@@ -77,7 +56,7 @@ namespace Automatisiertes_Kopieren
             set
             {
                 _homeFolder = value;
-                if (groupDropdown != null && groupDropdown.SelectedIndex == 0 && !string.IsNullOrEmpty(_homeFolder))
+                if (groupDropdown.SelectedIndex == 0 && !string.IsNullOrEmpty(_homeFolder))
                 {
                     var defaultKidNames = _autoComplete.GetKidNamesForGroup("Bären");
                     kidNameComboBox.ItemsSource = defaultKidNames;
@@ -95,7 +74,7 @@ namespace Automatisiertes_Kopieren
             string shortGroupName = convertedGroupName.Split(' ')[0];
             string filePath = $@"{HomeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
 
-            if (!ValidationHelper.IsValidFilePath(filePath))
+            if (!ValidationHelper.IsValidPath(filePath))
             {
                 Log.Error($"Verzeichnis existiert nicht: {filePath}");
                 return (null, "InvalidPath");
@@ -128,21 +107,17 @@ namespace Automatisiertes_Kopieren
             }
             catch (FileNotFoundException)
             {
-                _loggingService.LogAndShowError($"Die Datei {filePath} wurde nicht gefunden.", "Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
+                Log.Error($"Die Datei {filePath} wurde nicht gefunden.");
+                return (null, "FileNotFound");
             }
             catch (Exception ex)
             {
-                _loggingService.LogAndShowError($"Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten. {ex.Message}", "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.");
+                Log.Error(ex, "Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten.");
                 return (null, "UnexpectedError");
             }
 
-            _loggingService.LogAndShowError($"Es konnte kein gültiger Monatswert für {firstName} {lastName} extrahiert werden.", "Ein Fehler ist beim Extrahieren des Monatswertes aufgetreten.");
+            Log.Error($"Es konnte kein gültiger Monatswert für {firstName} {lastName} extrahiert werden.");
             return (null, "ExtractionError");
-        }
-
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            _isWindowLoaded = true;
         }
 
         private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
@@ -175,19 +150,19 @@ namespace Automatisiertes_Kopieren
             var result = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
             if (result.error == "HomeFolderNotSet")
             {
-                _loggingService.ShowError("Bitte setzen Sie zuerst den Heimordner.");
+                ShowError("Bitte setzen Sie zuerst den Heimordner.");
                 protokollbogenAutoCheckbox.IsChecked = false;
                 return;
             }
             else if (result.error == "FileNotFound")
             {
-                _loggingService.ShowError("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
+                ShowError("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
                 protokollbogenAutoCheckbox.IsChecked = false;
                 return;
             }
             else if (!result.months.HasValue)
             {
-                _loggingService.ShowError("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.");
+                ShowError("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.");
                 protokollbogenAutoCheckbox.IsChecked = false;
                 return;
             }
@@ -217,7 +192,7 @@ namespace Automatisiertes_Kopieren
         {
             if (string.IsNullOrEmpty(HomeFolder))
             {
-                _loggingService.LogAndShowError("HomeFolder is not set.", "Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
+                LogAndShowError("HomeFolder is not set.", "Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
                 return false;
             }
             return true;
@@ -227,7 +202,7 @@ namespace Automatisiertes_Kopieren
         {
             if (HomeFolder == null)
             {
-                _loggingService.LogAndShowError("HomeFolder is null during kid name validation.", "Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
+                LogAndShowError("HomeFolder is null during kid name validation.", "Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
                 return false;
             }
 
@@ -236,7 +211,7 @@ namespace Automatisiertes_Kopieren
 
             if (string.IsNullOrEmpty(validatedKidName))
             {
-                _loggingService.LogAndShowError($"Kid name validation failed for name: {kidName}", "Ungültiger Kindername. Bitte überprüfen Sie den eingegebenen Namen.");
+                LogAndShowError($"Kid name validation failed for name: {kidName}", "Ungültiger Kindername. Bitte überprüfen Sie den eingegebenen Namen.");
                 return false;
             }
 
@@ -250,7 +225,7 @@ namespace Automatisiertes_Kopieren
 
             if (!parsedYear.HasValue)
             {
-                _loggingService.LogAndShowError($"Report year validation failed for year: {reportYearText}", "Ungültiges Jahr.");
+                LogAndShowError($"Report year validation failed for year: {reportYearText}", "Ungültiges Jahr.");
                 return false;
             }
             return true;
@@ -280,7 +255,7 @@ namespace Automatisiertes_Kopieren
 
             if (HomeFolder == null)
             {
-                _loggingService.ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
+                ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
                 return false;
             }
 
@@ -294,7 +269,7 @@ namespace Automatisiertes_Kopieren
             int? reportYearNullable = _validator.IsReportYearValid();
             if (!reportYearNullable.HasValue)
             {
-                _loggingService.ShowError("Ungültiges Jahr.");
+                ShowError("Ungültiges Jahr.");
                 return false;
             }
             reportYear = reportYearNullable.Value;
@@ -313,7 +288,7 @@ namespace Automatisiertes_Kopieren
             var (months, _) = ExtractMonthsFromExcel(group, kidName.Split(' ')[1], kidName.Split(' ')[0]);
             if (!months.HasValue)
             {
-                _loggingService.ShowError("Fehler beim Extrahieren der Monate aus Excel.");
+                ShowError("Fehler beim Extrahieren der Monate aus Excel.");
                 return false;
             }
 
@@ -325,13 +300,13 @@ namespace Automatisiertes_Kopieren
 
             if (HomeFolder == null)
             {
-                _loggingService.ShowError("Home folder is missing.");
+                ShowError("Home folder is missing.");
                 return false;
             }
 
             if (!protokollbogenData.HasValue)
             {
-                _loggingService.ShowError("Protokollbogen data is missing.");
+                ShowError("Protokollbogen data is missing.");
                 return false;
             }
 
@@ -339,7 +314,7 @@ namespace Automatisiertes_Kopieren
 
             if (_fileManager == null)
             {
-                _loggingService.ShowError("Der Dateimanager ist nicht initialisiert.");
+                ShowError("Der Dateimanager ist nicht initialisiert.");
                 return false;
             }
 
@@ -350,7 +325,7 @@ namespace Automatisiertes_Kopieren
                 numericProtokollNumber = ExtractProtokollNumber(protokollbogenData.Value.fileName + ".pdf");
                 if (string.IsNullOrEmpty(numericProtokollNumber))
                 {
-                    _loggingService.ShowError("Fehler beim Extrahieren der Protokollnummer.");
+                    ShowError("Fehler beim Extrahieren der Protokollnummer.");
                     return false;
                 }
             }
@@ -368,7 +343,7 @@ namespace Automatisiertes_Kopieren
 
             if (HomeFolder == null || string.IsNullOrEmpty("Entwicklungsboegen") || string.IsNullOrEmpty("Allgemeiner-Entwicklungsbericht.pdf"))
             {
-                _loggingService.ShowError("One of the path components is missing.");
+                ShowError("One of the path components is missing.");
                 return;
             }
             string allgemeinerFilePath = Path.Combine(HomeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
@@ -379,7 +354,7 @@ namespace Automatisiertes_Kopieren
 
             if (_fileManager == null)
             {
-                _loggingService.ShowError("Der Dateimanager ist nicht initialisiert.");
+                ShowError("Der Dateimanager ist nicht initialisiert.");
                 return;
             }
             _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, ConvertToTitleCase(reportMonthDropdown.Text!), reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
@@ -393,11 +368,31 @@ namespace Automatisiertes_Kopieren
             {
                 if (_fileManager == null)
                 {
-                    _loggingService.ShowError("Der Dateimanager ist nicht initialisiert.");
+                    ShowError("Der Dateimanager ist nicht initialisiert.");
                     return;
                 }
                 _fileManager.SafeCopyFile(sourceFile, targetFile);
             }
+        }
+
+        public void ShowError(string message)
+        {
+            MessageBox.Show(message, "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        private void LogAndShowError(string logMessage, string userMessage)
+        {
+            Log.Error(logMessage);
+            ShowError(userMessage);
+        }
+
+        private bool IsHomeFolderSelected()
+        {
+            if (!string.IsNullOrEmpty(HomeFolder))
+                return true;
+
+            SelectHomeFolder();
+            return !string.IsNullOrEmpty(HomeFolder);
         }
 
         private bool AreAllRequiredFieldsFilled()
@@ -409,13 +404,13 @@ namespace Automatisiertes_Kopieren
 
             if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(" "))
             {
-                _loggingService.ShowError("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.");
+                ShowError("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(selectedGroup) || string.IsNullOrWhiteSpace(selectedReportMonth) || string.IsNullOrWhiteSpace(selectedReportYear))
             {
-                _loggingService.ShowError("Bitte füllen Sie alle geforderten Felder aus.");
+                ShowError("Bitte füllen Sie alle geforderten Felder aus.");
                 return false;
             }
 
@@ -424,7 +419,6 @@ namespace Automatisiertes_Kopieren
 
         public void OnGroupSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (!_isWindowLoaded) return;
             if (string.IsNullOrEmpty(HomeFolder))
             {
                 MessageBoxResult result = MessageBox.Show("Möchten Sie das Hauptverzeichnis ändern?", "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -443,9 +437,20 @@ namespace Automatisiertes_Kopieren
 
             if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxItem comboBoxItem && comboBoxItem.Content is string selectedGroup && !string.IsNullOrEmpty(selectedGroup))
             {
+                Log.Information($"e.AddedItems[0] type: {e.AddedItems[0]?.GetType().Name ?? "null"}, value: {e.AddedItems[0]}");
+                Log.Information($"Selected group: {selectedGroup}");
                 var kidNames = _autoComplete.GetKidNamesForGroup(selectedGroup);
                 _allKidNames = kidNames;
                 kidNameComboBox.ItemsSource = _allKidNames;
+            }
+            else if (e.AddedItems.Count > 0)
+            {
+                Log.Warning($"e.AddedItems[0] type: {e.AddedItems[0]?.GetType().Name ?? "null"}, value: {e.AddedItems[0]}");
+                Log.Warning("Selected group is empty or not a valid ComboBoxItem.");
+            }
+            else
+            {
+                Log.Warning("No group selected.");
             }
         }
 
@@ -477,9 +482,10 @@ namespace Automatisiertes_Kopieren
                 {
                     HomeFolder = dialog.SelectedPath;
 
-                    if (!ValidationHelper.IsValidDirectoryPath(HomeFolder))
+                    if (!ValidationHelper.IsValidPath(HomeFolder))
                     {
-                        _loggingService.LogAndShowError($"Invalid home folder path: {HomeFolder}", "Der ausgewählte Pfad ist ungültig. Bitte wählen Sie ein gültiges Verzeichnis.");
+                        Log.Error($"Invalid home folder path: {HomeFolder}");
+                        ShowError("The selected path is invalid. Please choose a valid directory.");
                         return;
                     }
                     InitializeFileManager();
@@ -498,6 +504,18 @@ namespace Automatisiertes_Kopieren
         private void OnSelectHomeFolderButtonClicked(object sender, RoutedEventArgs e)
         {
             SelectHomeFolder();
+        }
+
+        private void InitializeFileManager()
+        {
+            if (HomeFolder != null && ValidationHelper.IsValidPath(HomeFolder))
+            {
+                _fileManager = new FileManager(HomeFolder, this);
+            }
+            else
+            {
+                ShowError("Bitte wählen Sie zunächst das Hauptverzeichnis aus.");
+            }
         }
 
         private void MainWindow_Closed(object sender, EventArgs e)

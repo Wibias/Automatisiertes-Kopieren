@@ -46,11 +46,11 @@ namespace Automatisiertes_Kopieren
                     {
                         string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                         File.Move(destFile, backupFilename);
-                        _loggingService.ShowInformation($"Die vorhandene Datei wurde gesichert als: {backupFilename}");
+                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        _loggingService.ShowInformation("Die Datei wurde nicht umbenannt.");
+                        MessageBox.Show("Die Datei wurde nicht umbenannt.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
                 }
@@ -59,7 +59,7 @@ namespace Automatisiertes_Kopieren
             }
             catch (Exception ex)
             {
-                _loggingService.LogAndShowError($"Fehler beim Umbenennen der Datei: {ex.Message}", "Ein Fehler ist aufgetreten beim Umbenennen der Datei.");
+                _loggingService.HandleError($"Fehler beim Umbenennen der Datei: {ex.Message}");
             }
         }
 
@@ -78,7 +78,7 @@ namespace Automatisiertes_Kopieren
             }
             else
             {
-                _loggingService.ShowError($"Der numerische Wert konnte nicht aus folgender Protokollnummer extrahiert werden: {protokollNumber}");
+                Log.Error($"Der numerische Wert konnte nicht aus folgender Protokollnummer extrahiert werden: {protokollNumber}");
                 return;
             }
 
@@ -152,17 +152,18 @@ namespace Automatisiertes_Kopieren
                 Directory.CreateDirectory(destDir);
             }
 
-            Log.Error($"Versuche, auf die Datei zuzugreifen unter: {sourceFile}");
+            Log.Information($"Versuche, auf die Datei zuzugreifen unter: {sourceFile}");
 
             if (!File.Exists(sourceFile))
             {
-                _loggingService.LogAndShowError($"Datei {Path.GetFileName(sourceFile)} wurde nicht im Quellverzeichnis gefunden.", "Die Datei wurde nicht gefunden.");
+                Log.Warning($"Datei {Path.GetFileName(sourceFile)} wurde nicht im Quellverzeichnis gefunden.");
                 return;
             }
 
-            if (destDir == null || !ValidationHelper.IsValidDirectoryPath(destDir))
+            if (destDir == null || !ValidationHelper.IsValidPath(destDir))
             {
-                _loggingService.LogAndShowError($"Der Gruppenpfad ist nicht gültig oder zugänglich: {destDir ?? "null"}", "Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
+                Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {destDir ?? "null"}");
+                _loggingService.HandleError($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
                 return;
             }
 
@@ -178,12 +179,12 @@ namespace Automatisiertes_Kopieren
                         string backupFilename = Path.Combine(destDir, $"{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak");
                         File.Move(destFile, backupFilename);
                         Log.Information($"Existing file backed up as: {backupFilename}");
-                        _loggingService.ShowInformation($"Die vorhandene Datei wurde gesichert als: {backupFilename}");
+                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
                         Log.Information("User chose not to copy the file.");
-                        _loggingService.ShowInformation("Die Datei wurde nicht kopiert.");
+                        MessageBox.Show("Die Datei wurde nicht kopiert.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
                 }
@@ -194,19 +195,23 @@ namespace Automatisiertes_Kopieren
             }
             catch (IOException ioEx)
             {
-                _loggingService.LogAndShowError($"I/O error occurred: {ioEx.Message}", "Fehler beim Kopieren der Datei wegen I/O-Problemen.");
+                Log.Error($"I/O error occurred: {ioEx.Message}");
+                _loggingService.HandleError($"Fehler beim Kopieren der Datei wegen I/O-Problemen: {ioEx.Message}");
             }
             catch (UnauthorizedAccessException uaEx)
             {
-                _loggingService.LogAndShowError($"Access denied: {uaEx.Message}", "Zugriff verweigert. Überprüfen Sie Ihre Berechtigungen und versuchen Sie es erneut.");
+                Log.Error($"Access denied: {uaEx.Message}");
+                _loggingService.HandleError($"Zugriff verweigert. Überprüfen Sie Ihre Berechtigungen und versuchen Sie es erneut.");
             }
             catch (System.Security.SecurityException seEx)
             {
-                _loggingService.LogAndShowError($"Security error: {seEx.Message}", "Sicherheitsfehler.");
+                Log.Error($"Security error: {seEx.Message}");
+                _loggingService.HandleError($"Sicherheitsfehler: {seEx.Message}");
             }
             catch (Exception ex)
             {
-                _loggingService.LogAndShowError($"An unexpected error occurred: {ex.Message}", "Ein unerwarteter Fehler ist aufgetreten.");
+                Log.Error($"An unexpected error occurred: {ex.Message}");
+                _loggingService.HandleError($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
             }
         }
     }
