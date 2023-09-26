@@ -1,5 +1,4 @@
-﻿using Serilog;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -10,15 +9,14 @@ namespace Automatisiertes_Kopieren
     public class FileManager
     {
         private readonly string _homeFolder;
-        private readonly MainWindow _mainWindow;
+        private readonly static LoggingService _loggingService = new LoggingService();
 
-        public FileManager(string homeFolder, MainWindow mainWindow)
+        public FileManager(string homeFolder)
         {
             _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
-            _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
         }
 
-        public string GetTargetPath(string group, string kidName, string reportYear)
+        public string GetTargetPath(string group, string kidName, string reportYear, string reportMonth)
         {
             group = StringUtilities.ConvertToTitleCase(group);
             group = StringUtilities.ConvertSpecialCharacters(group, StringUtilities.ConversionType.Umlaute);
@@ -29,35 +27,19 @@ namespace Automatisiertes_Kopieren
             {
                 throw new InvalidOperationException("Das Hauptverzeichnis ist nicht festgelegt.");
             }
-            return Path.Combine(_homeFolder, "Entwicklungsberichte", $"{group} Entwicklungsberichte", "Aktuell", kidName, reportYear);
+            return $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\Aktuell\{kidName}\{reportYear}\{reportMonth}";
         }
 
         public void SafeRenameFile(string sourceFile, string destFile)
         {
             try
             {
-                if (File.Exists(destFile))
-                {
-                    MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "Datei existiert", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
-                        File.Move(destFile, backupFilename);
-                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("Die Datei wurde nicht umbenannt.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-                        return;
-                    }
-                }
 
                 File.Move(sourceFile, destFile);
             }
             catch (Exception ex)
             {
-                HandleError($"Fehler beim Umbenennen der Datei: {ex.Message}");
+                _loggingService.LogAndShowMessage($"Fehler beim Umbenennen der Datei: {ex.Message}", "Fehler beim Umbenennen der Datei", LoggingService.LogLevel.Error, LoggingService.MessageType.Error);
             }
         }
 
@@ -76,7 +58,7 @@ namespace Automatisiertes_Kopieren
             }
             else
             {
-                Log.Error($"Der numerische Wert konnte nicht aus folgender Protokollnummer extrahiert werden: {protokollNumber}");
+                _loggingService.LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}", LoggingService.LogLevel.Error);
                 return;
             }
 
@@ -89,33 +71,27 @@ namespace Automatisiertes_Kopieren
 
                 if (fileName.Equals("Allgemeiner-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isAllgemeinerChecked)
                 {
-                    string newFileName = $"{kidName}_Allgemeiner-Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
+                    string newFileName = $"{kidName}_Allgemeiner_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
 
                 if (fileName.Equals("Vorschul-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isVorschulChecked)
                 {
-                    string newFileName = $"{kidName}_Vorschul-Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
+                    string newFileName = $"{kidName}_Vorschul_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
 
                 if (fileName.StartsWith("Kind_Protokollbogen_", StringComparison.OrdinalIgnoreCase) && isProtokollbogenChecked)
                 {
-                    string newFileName = $"{kidName}_{protokollNumber}_Monate_{reportMonth}_{reportYear}{fileExtension}";
+                    string newFileName = $"{kidName}_{protokollNumber}_Protokollbogen_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
-            }
-        }
+                if (fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase))
+                {
+                    string newFileName = $"{kidName}_Protokoll-Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
+                    SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                }
 
-        public void CopyFile(string sourcePath, string targetPath)
-        {
-            try
-            {
-                File.Copy(sourcePath, targetPath, overwrite: true);
-            }
-            catch (Exception ex)
-            {
-                HandleError($"Fehler beim Kopieren der Datei: {ex.Message}");
             }
         }
 
@@ -154,80 +130,59 @@ namespace Automatisiertes_Kopieren
             }
         }
 
+        public void CopyFilesFromSourceToTarget(string sourceFile, string targetFolderPath, string protokollbogenFileName)
+        {
+            if (!Directory.Exists(targetFolderPath))
+            {
+                Directory.CreateDirectory(targetFolderPath);
+            }
+
+            if (File.Exists(sourceFile))
+            {
+                try
+                {
+                    SafeCopyFile(sourceFile, Path.Combine(targetFolderPath, protokollbogenFileName));
+                }
+                catch (Exception ex)
+                {
+                    _loggingService.LogMessage($"Error copying file. Source: {sourceFile}, Destination: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Error: {ex.Message}", LoggingService.LogLevel.Error);
+                }
+            }
+            else
+            {
+                _loggingService.LogMessage($"File {protokollbogenFileName} not found in source folder.", LoggingService.LogLevel.Warning);
+            }
+        }
+
         public void SafeCopyFile(string sourceFile, string destFile)
         {
-            string? destDir = Path.GetDirectoryName(destFile);
-            if (destDir != null && !Directory.Exists(destDir))
-            {
-                Directory.CreateDirectory(destDir);
-            }
-
-            Log.Information($"Versuche, auf die Datei zuzugreifen unter: {sourceFile}");
-
-            if (!File.Exists(sourceFile))
-            {
-                Log.Warning($"Datei {Path.GetFileName(sourceFile)} wurde nicht im Quellverzeichnis gefunden.");
-                return;
-            }
-
-            if (destDir == null || !ValidationHelper.IsValidPath(destDir))
-            {
-                Log.Error($"Der Gruppenpfad ist nicht gültig oder zugänglich: {destDir ?? "null"}");
-                HandleError($"Der Zielordner ist nicht gültig oder zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
-                return;
-            }
-
             try
             {
                 if (File.Exists(destFile))
                 {
-                    Log.Information($"File {destFile} already exists. Prompting user for action.");
-                    MessageBoxResult result = MessageBox.Show("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", "Datei existiert bereits", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    bool overwrite = _loggingService.ShowMessage("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", LoggingService.MessageType.Warning, "File exists") == MessageBoxResult.Yes;
 
-                    if (result == MessageBoxResult.Yes)
+                    if (overwrite)
                     {
-                        string backupFilename = Path.Combine(destDir, $"{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak");
+                        string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                         File.Move(destFile, backupFilename);
-                        Log.Information($"Existing file backed up as: {backupFilename}");
-                        MessageBox.Show($"Die vorhandene Datei wurde gesichert als: {backupFilename}", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                        _loggingService.ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}", LoggingService.MessageType.Information, "Info");
                     }
                     else
                     {
-                        Log.Information("User chose not to copy the file.");
-                        MessageBox.Show("Die Datei wurde nicht kopiert.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                        _loggingService.ShowMessage("Die Datei wurde nicht kopiert.", LoggingService.MessageType.Information, "Info");
                         return;
                     }
                 }
 
-                Log.Information($"Copying file from {sourceFile} to {destFile}");
                 File.Copy(sourceFile, destFile, overwrite: true);
-                MessageBox.Show($"Die Datei wurde erfolgreich kopiert: {destFile}", "Erfolgreich", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (IOException ioEx)
-            {
-                Log.Error($"I/O error occurred: {ioEx.Message}");
-                HandleError($"Fehler beim Kopieren der Datei wegen I/O-Problemen: {ioEx.Message}");
-            }
-            catch (UnauthorizedAccessException uaEx)
-            {
-                Log.Error($"Access denied: {uaEx.Message}");
-                HandleError($"Zugriff verweigert. Überprüfen Sie Ihre Berechtigungen und versuchen Sie es erneut.");
-            }
-            catch (System.Security.SecurityException seEx)
-            {
-                Log.Error($"Security error: {seEx.Message}");
-                HandleError($"Sicherheitsfehler: {seEx.Message}");
+                _loggingService.ShowMessage($"Die Datei wurde erfolgreich kopiert: {destFile}", LoggingService.MessageType.Information, "Success");
             }
             catch (Exception ex)
             {
-                Log.Error($"An unexpected error occurred: {ex.Message}");
-                HandleError($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
+                _loggingService.LogAndShowMessage($"Fehler beim Kopieren der Datei: {ex.Message}", "Fehler beim Kopieren der Datei", LoggingService.LogLevel.Error, LoggingService.MessageType.Error);
             }
         }
 
-        private void HandleError(string message)
-        {
-            _mainWindow.ShowError(message);
-        }
     }
 }
