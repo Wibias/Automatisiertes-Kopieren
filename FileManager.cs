@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
+using static Automatisiertes_Kopieren.LoggingService;
 
 namespace Automatisiertes_Kopieren
 {
@@ -88,7 +89,7 @@ namespace Automatisiertes_Kopieren
                 }
                 if (fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase))
                 {
-                    string newFileName = $"{kidName}_Protokoll-Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
+                    string newFileName = $"{kidName}_Protokoll_Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
 
@@ -160,9 +161,9 @@ namespace Automatisiertes_Kopieren
             {
                 if (File.Exists(destFile))
                 {
-                    bool overwrite = _loggingService.ShowMessage("Die Datei existiert bereits. Möchten Sie die vorhandene Datei überschreiben?", LoggingService.MessageType.Warning, "File exists") == MessageBoxResult.Yes;
+                    MessageBoxResult result = _loggingService.ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Information, "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
 
-                    if (overwrite)
+                    if (result == MessageBoxResult.Yes)
                     {
                         string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                         File.Move(destFile, backupFilename);

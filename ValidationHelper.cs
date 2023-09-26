@@ -12,7 +12,6 @@ namespace Automatisiertes_Kopieren
         private readonly static LoggingService _loggingService = new LoggingService();
         public static (string directoryPath, string fileName)? DetermineProtokollbogen(double monthsAndDays)
         {
-            _loggingService.LogMessage($"Checking value against ranges: {monthsAndDays}", LoggingService.LogLevel.Information);
             var protokollbogenRanges = new List<(double start, double end, (string directoryPath, string fileName) value)>
             {
                 (10.15, 16.14, (Path.Combine("Entwicklungsboegen", "Krippe-Protokollboegen"), "Kind_Protokollbogen_12_Monate")),
@@ -47,15 +46,7 @@ namespace Automatisiertes_Kopieren
         public static double ConvertToDecimalFormat(double monthsAndDays)
         {
             string monthsAndDaysRaw = monthsAndDays.ToString("0.00", CultureInfo.InvariantCulture);
-
-            if (double.TryParse(monthsAndDaysRaw, out double parsedValue))
-            {
-                return parsedValue;
-            }
-            else
-            {
-                return 0;
-            }
+            return double.Parse(monthsAndDaysRaw.Replace(",", "."), CultureInfo.InvariantCulture);
         }
 
         public static string? ValidateKidName(string kidName, string homeFolder, string groupDropdownText)

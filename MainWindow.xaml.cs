@@ -3,6 +3,7 @@ using MahApps.Metro.Controls;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -11,7 +12,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
 using static Automatisiertes_Kopieren.LoggingService;
-using MessageBox = System.Windows.MessageBox;
 
 namespace Automatisiertes_Kopieren
 {
@@ -85,11 +85,10 @@ namespace Automatisiertes_Kopieren
                         }
 
                         var monthsValueRaw = worksheet.Cell(row, 6).Value.ToString();
-                        _loggingService.LogMessage($"Raw months value from Excel: {monthsValueRaw}", LogLevel.Information);
 
-                        if (double.TryParse(monthsValueRaw.Replace(",", "."), out double parsedValue))
+                        if (double.TryParse(monthsValueRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsedValue))
                         {
-                            return (parsedValue, null);
+                            return (Math.Round(parsedValue, 2), null);
                         }
                     }
                 }
@@ -228,7 +227,7 @@ namespace Automatisiertes_Kopieren
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                _loggingService.ShowMessage($"Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten: {ex.Message}", MessageType.Error);
                 return false;
             }
 
@@ -376,6 +375,7 @@ namespace Automatisiertes_Kopieren
             }
 
             _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
+            
             if (OperationState.OperationsSuccessful)
             {
                 _loggingService.ShowMessage("Dateien erfolgreich kopiert und umbenannt.", MessageType.Information);
