@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,6 +17,7 @@ namespace Automatisiertes_Kopieren
     public partial class MainWindow : MetroWindow
     {
         private readonly static LoggingService _loggingService = new LoggingService();
+        private AutoComplete _autoComplete;
         private FileManager? _fileManager;
         private int? _selectedProtokollbogenMonth;
         private bool _isHandlingCheckboxEvent = false;
@@ -28,6 +28,7 @@ namespace Automatisiertes_Kopieren
         {
             _loggingService.InitializeLogger();
             InitializeComponent();
+            _autoComplete = new AutoComplete(this);
             var settings = new AppSettings().LoadSettings();
             if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
             {
@@ -51,13 +52,30 @@ namespace Automatisiertes_Kopieren
                 _homeFolder = value;
                 if (groupDropdown.SelectedIndex == 0 && !string.IsNullOrEmpty(_homeFolder))
                 {
-                    var defaultKidNames = GetKidNamesForGroup("Bären");
+                    var defaultKidNames = _autoComplete.GetKidNamesForGroup("Bären");
                     kidNameComboBox.ItemsSource = defaultKidNames;
                 }
             }
         }
 
-        private (double? months, string? error) ExtractMonthsFromExcel(string group, string lastName, string firstName)
+        private void OnSelectHomeFolderButtonClicked(object sender, RoutedEventArgs e)
+        {
+            SelectHomeFolder();
+        }
+
+        private void InitializeFileManager()
+        {
+            if (homeFolder != null)
+            {
+                _fileManager = new FileManager(homeFolder);
+            }
+            else
+            {
+                _loggingService.ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+            }
+        }
+
+        private (double? months, string? error) ExtractMonthsFromExcel(string group, string kidLastName, string kidFirstName)
         {
             if (string.IsNullOrEmpty(homeFolder))
             {
@@ -76,19 +94,22 @@ namespace Automatisiertes_Kopieren
 
                     for (int row = 7; row <= 31; row++)
                     {
-                        var lastNameCell = worksheet.Cell(row, 3).Value.ToString().Trim();
-                        var firstNameCell = worksheet.Cell(row, 4).Value.ToString().Trim();
+                        var lastNameCell = worksheet.Cell(row, 3).Value.ToString();
+                        var firstNameCell = worksheet.Cell(row, 4).Value.ToString();
 
-                        if (lastNameCell != lastName || firstNameCell != firstName)
+
+                        lastNameCell = lastNameCell.Trim();
+                        firstNameCell = firstNameCell.Trim();
+
+                        if (string.Equals(lastNameCell, kidLastName, StringComparison.OrdinalIgnoreCase) &&
+                            string.Equals(firstNameCell, kidFirstName, StringComparison.OrdinalIgnoreCase))
                         {
-                            continue;
-                        }
+                            var monthsValueRaw = worksheet.Cell(row, 6).Value.ToString();
 
-                        var monthsValueRaw = worksheet.Cell(row, 6).Value.ToString();
-
-                        if (double.TryParse(monthsValueRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsedValue))
-                        {
-                            return (Math.Round(parsedValue, 2), null);
+                            if (double.TryParse(monthsValueRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsedValue))
+                            {
+                                return (Math.Round(parsedValue, 2), null);
+                            }
                         }
                     }
                 }
@@ -112,9 +133,23 @@ namespace Automatisiertes_Kopieren
                 return (null, "UnexpectedError");
             }
 
-            _loggingService.LogAndShowMessage($"Es konnte kein gültiger Monatswert für {firstName} {lastName} extrahiert werden.",
+            _loggingService.LogAndShowMessage($"Es konnte kein gültiger Monatswert für {kidFirstName} {kidLastName} extrahiert werden.",
                                               "Es konnte kein gültiger Monatswert extrahiert werden. Bitte überprüfen Sie die Daten.");
             return (null, "ExtractionError");
+        }
+        private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            _autoComplete.KidNameComboBox_Loaded(sender, e);
+        }
+
+        private void KidNameComboBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            _autoComplete.OnKidNameComboBoxPreviewTextInput(sender, e);
+        }
+
+        private void KidNameComboBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            _autoComplete.OnKidNameComboBoxPreviewKeyDown(sender, e);
         }
 
         private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
@@ -142,30 +177,47 @@ namespace Automatisiertes_Kopieren
             {
                 string group = groupDropdown.Text;
                 string kidName = kidNameComboBox.Text;
-                var nameParts = kidName.Split(' ');
-                string kidFirstName = nameParts[0];
-                string kidLastName = nameParts.Length > 1 ? nameParts[1] : "";
 
-                var result = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
-                if (result.error == "HomeFolderNotSet")
+                string[] nameParts = kidName.Split(' ');
+
+                if (nameParts.Length > 0)
                 {
-                    _loggingService.ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
-                    protokollbogenAutoCheckbox.IsChecked = false;
-                    return;
+                    string kidFirstName = nameParts[0].Trim();
+                    string kidLastName = "";
+
+                    for (int i = 1; i < nameParts.Length; i++)
+                    {
+                        kidLastName += nameParts[i].Trim() + " ";
+                    }
+
+                    kidLastName = kidLastName.Trim();
+                    var result = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
+
+                    if (result.error == "HomeFolderNotSet")
+                    {
+                        _loggingService.ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
+                        protokollbogenAutoCheckbox.IsChecked = false;
+                        return;
+                    }
+                    else if (result.error == "FileNotFound")
+                    {
+                        _loggingService.ShowMessage("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", MessageType.Error);
+                        protokollbogenAutoCheckbox.IsChecked = false;
+                        return;
+                    }
+                    else if (!result.months.HasValue)
+                    {
+                        _loggingService.ShowMessage("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.", MessageType.Error);
+                        protokollbogenAutoCheckbox.IsChecked = false;
+                        return;
+                    }
+                    _selectedProtokollbogenMonth = (int)Math.Round(result.months.Value);
                 }
-                else if (result.error == "FileNotFound")
+                else
                 {
-                    _loggingService.ShowMessage("Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.", MessageType.Error);
+                    _loggingService.ShowMessage("Ungültiger Name. Bitte überprüfen Sie die Daten.", MessageType.Error);
                     protokollbogenAutoCheckbox.IsChecked = false;
-                    return;
                 }
-                else if (!result.months.HasValue)
-                {
-                    _loggingService.ShowMessage("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.", MessageType.Error);
-                    protokollbogenAutoCheckbox.IsChecked = false;
-                    return;
-                }
-                _selectedProtokollbogenMonth = (int)Math.Round(result.months.Value);
             }
             else
             {
@@ -244,7 +296,6 @@ namespace Automatisiertes_Kopieren
         {
             public static bool OperationsSuccessful { get; set; } = true;
         }
-
 
         private void PerformFileOperations()
         {
@@ -375,7 +426,7 @@ namespace Automatisiertes_Kopieren
             }
 
             _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
-            
+
             if (OperationState.OperationsSuccessful)
             {
                 _loggingService.ShowMessage("Dateien erfolgreich kopiert und umbenannt.", MessageType.Information);
@@ -413,157 +464,19 @@ namespace Automatisiertes_Kopieren
             return true;
         }
 
-        private List<string> GetKidNamesFromDirectory(string groupPath)
-        {
-            if (homeFolder != null)
-            {
-                string fullPath = Path.Combine(homeFolder, groupPath);
-                if (Directory.Exists(fullPath))
-                {
-                    var directories = Directory.GetDirectories(fullPath);
-                    return directories.Select(Path.GetFileName).OfType<string>().ToList();
-                }
-                else
-                {
-                    _loggingService.LogMessage($"Directory does not exist: {fullPath}", LogLevel.Warning);
-                }
-            }
-            else
-            {
-                _loggingService.LogMessage("_homeFolder is not set.", LogLevel.Warning);
-            }
-            return new List<string>();
-        }
-
-        private List<string> GetKidNamesForGroup(string groupName)
-        {
-            string path = string.Empty;
-            switch (groupName)
-            {
-                case "Bären":
-                    path = "Entwicklungsberichte\\Baeren Entwicklungsberichte\\Aktuell";
-                    break;
-                case "Löwen":
-                    path = "Entwicklungsberichte\\Loewen Entwicklungsberichte\\Aktuell";
-                    break;
-                case "Schnecken":
-                    path = "Entwicklungsberichte\\Schnecken Beobachtungsberichte\\Aktuell";
-                    break;
-            }
-            return GetKidNamesFromDirectory(path);
-        }
-
         private void GroupDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             string? selectedGroup = groupDropdown.SelectedItem?.ToString();
 
             if (!string.IsNullOrEmpty(selectedGroup))
             {
-                List<string> kidNames = GetKidNamesForGroup(selectedGroup);
+                List<string> kidNames = _autoComplete.GetKidNamesForGroup(selectedGroup);
 
                 kidNameComboBox.ItemsSource = kidNames;
             }
         }
 
-        private void OnKidNameComboBoxLoaded(object sender, RoutedEventArgs e)
-        {
-            var textBox = kidNameComboBox.Template.FindName("PART_EditableTextBox", kidNameComboBox) as TextBox;
-            if (textBox != null)
-            {
-                textBox.TextChanged += OnKidNameComboBoxTextChanged;
-            }
-
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (groupDropdown.SelectedIndex == 0)
-                {
-                    OnGroupSelected(groupDropdown, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, new List<object>(), new List<object> { groupDropdown.SelectedItem }));
-                }
-            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
-        }
-
-        private void OnKidNameComboBoxPreviewTextInput(object sender, TextCompositionEventArgs e)
-        {
-            if (kidNameComboBox == null) return;
-
-            var textBox = kidNameComboBox.Template.FindName("PART_EditableTextBox", kidNameComboBox) as TextBox;
-            if (textBox == null) return;
-
-            string futureText = textBox.Text.Insert(textBox.CaretIndex, e.Text);
-
-            var filteredNames = _allKidNames.Where(name => name.StartsWith(futureText, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            if (filteredNames.Count == 0)
-            {
-                kidNameComboBox.ItemsSource = _allKidNames;
-                kidNameComboBox.IsDropDownOpen = false;
-                return;
-            }
-
-            kidNameComboBox.ItemsSource = filteredNames;
-            kidNameComboBox.Text = futureText;
-            textBox.CaretIndex = futureText.Length;
-            kidNameComboBox.IsDropDownOpen = true;
-
-            e.Handled = true;
-        }
-
-        private void OnKidNameComboBoxPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Down || e.Key == Key.Up)
-            {
-                if (kidNameComboBox.IsDropDownOpen)
-                {
-                    e.Handled = false;
-                }
-            }
-            else if (e.Key == Key.Enter)
-            {
-                if (kidNameComboBox.IsDropDownOpen)
-                {
-                    kidNameComboBox.SelectedItem = kidNameComboBox.Items.CurrentItem;
-                    kidNameComboBox.IsDropDownOpen = false;
-                }
-            }
-        }
-
-        private bool _isUpdatingComboBox = false;
-
-        private void OnKidNameComboBoxTextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isUpdatingComboBox) return;
-            if (kidNameComboBox == null) return;
-
-            _isUpdatingComboBox = true;
-
-            string input = kidNameComboBox.Text;
-
-            var filteredNames = _allKidNames.Where(name => name.StartsWith(input, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            kidNameComboBox.ItemsSource = filteredNames.Count > 0 ? filteredNames : _allKidNames;
-            kidNameComboBox.Text = input;
-            kidNameComboBox.IsDropDownOpen = filteredNames.Count > 0;
-
-            var textBox = kidNameComboBox.Template.FindName("PART_EditableTextBox", kidNameComboBox) as TextBox;
-            if (textBox != null)
-            {
-                textBox.SelectionStart = input.Length;
-            }
-
-            _isUpdatingComboBox = false;
-        }
-
-        private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (groupDropdown.SelectedIndex == 0)
-            {
-                var defaultKidNames = GetKidNamesForGroup("Bären");
-                _allKidNames = defaultKidNames;
-                kidNameComboBox.ItemsSource = _allKidNames;
-            }
-        }
-
-        private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
+        public void OnGroupSelected(object sender, SelectionChangedEventArgs e)
         {
             if (kidNameComboBox == null)
             {
@@ -602,8 +515,8 @@ namespace Automatisiertes_Kopieren
 
             if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxItem comboBoxItem && comboBoxItem.Content is string selectedGroup && !string.IsNullOrEmpty(selectedGroup))
             {
-                var kidNames = GetKidNamesForGroup(selectedGroup);
-                _allKidNames = GetKidNamesForGroup(selectedGroup);
+                var kidNames = _autoComplete.GetKidNamesForGroup(selectedGroup);
+                _allKidNames = _autoComplete.GetKidNamesForGroup(selectedGroup);
                 kidNameComboBox.ItemsSource = _allKidNames;
             }
             else if (e.AddedItems.Count > 0)
@@ -638,23 +551,6 @@ namespace Automatisiertes_Kopieren
 
                     _loggingService.ShowMessage($"Ausgewähltes Hauptverzeichnis: {homeFolder}", MessageType.Information);
                 }
-            }
-        }
-
-        private void OnSelectHomeFolderButtonClicked(object sender, RoutedEventArgs e)
-        {
-            SelectHomeFolder();
-        }
-
-        private void InitializeFileManager()
-        {
-            if (homeFolder != null)
-            {
-                _fileManager = new FileManager(homeFolder);
-            }
-            else
-            {
-                _loggingService.ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
             }
         }
 
