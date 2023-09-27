@@ -31,22 +31,38 @@ namespace Automatisiertes_Kopieren
             return $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\Aktuell\{kidName}\{reportYear}\{reportMonth}";
         }
 
-        public void SafeRenameFile(string sourceFile, string destFile)
+        public bool SafeRenameFile(string sourceFile, string destFile)
         {
             try
             {
+                if (File.Exists(destFile))
+                {
+                    MessageBoxResult result = _loggingService.ShowMessage("Die Datei existiert bereits. Möchtest du diese ersetzen?",
+                        LoggingService.MessageType.Information,
+                        "Confirm Replace",
+                        MessageBoxButton.YesNo);
+
+                    if (result == MessageBoxResult.No)
+                    {
+                        return false; // User chose not to replace the file.
+                    }
+                    File.Delete(destFile);
+                }
 
                 File.Move(sourceFile, destFile);
+                return true;
             }
             catch (Exception ex)
             {
                 _loggingService.LogAndShowMessage($"Fehler beim Umbenennen der Datei: {ex.Message}", "Fehler beim Umbenennen der Datei", LoggingService.LogLevel.Error, LoggingService.MessageType.Error);
+                return false;
             }
         }
 
 
-        public void RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, string protokollNumber)
+        public string RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, string protokollNumber)
         {
+            string? renamedProtokollbogenPath = null;
             kidName = StringUtilities.ConvertToTitleCase(kidName);
             kidName = StringUtilities.ConvertSpecialCharacters(kidName, StringUtilities.ConversionType.Umlaute, StringUtilities.ConversionType.Underscore);
 
@@ -60,7 +76,7 @@ namespace Automatisiertes_Kopieren
             else
             {
                 _loggingService.LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}", LoggingService.LogLevel.Error);
-                return;
+                return string.Empty;
             }
 
             string[] files = Directory.GetFiles(targetFolderPath);
@@ -86,14 +102,16 @@ namespace Automatisiertes_Kopieren
                 {
                     string newFileName = $"{kidName}_{protokollNumber}_Protokollbogen_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                    renamedProtokollbogenPath = Path.Combine(targetFolderPath, newFileName);
                 }
+
                 if (fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase))
                 {
                     string newFileName = $"{kidName}_Protokoll_Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
-
             }
+            return renamedProtokollbogenPath ?? string.Empty;
         }
 
         public static class StringUtilities
@@ -177,7 +195,6 @@ namespace Automatisiertes_Kopieren
                 }
 
                 File.Copy(sourceFile, destFile, overwrite: true);
-                _loggingService.ShowMessage($"Die Datei wurde erfolgreich kopiert: {destFile}", LoggingService.MessageType.Information, "Success");
             }
             catch (Exception ex)
             {

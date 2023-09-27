@@ -425,7 +425,13 @@ namespace Automatisiertes_Kopieren
                 }
             }
 
-            _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
+            string renamedProtokollbogenPath = _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
+
+            if (!string.IsNullOrEmpty(renamedProtokollbogenPath))
+            {
+                var fillPdf = new FillPDF();
+                fillPdf.FillProtokollbogen(renamedProtokollbogenPath, kidName, months.HasValue ? months.Value : 0, group);
+            }
 
             if (OperationState.OperationsSuccessful)
             {
@@ -480,11 +486,8 @@ namespace Automatisiertes_Kopieren
         {
             if (kidNameComboBox == null)
             {
-                _loggingService.LogMessage("kidNameComboBox is null.", LogLevel.Warning);
                 return;
             }
-
-            _loggingService.LogMessage($"_homeFolder value: {homeFolder}", LogLevel.Information);
 
             if (string.IsNullOrEmpty(homeFolder))
             {
