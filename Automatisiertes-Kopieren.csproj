@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.102.1" />
+    <PackageReference Include="EPPlus" Version="6.2.9" />
     <PackageReference Include="itext7" Version="8.0.1" />
     <PackageReference Include="itext7.bouncy-castle-adapter" Version="8.0.1" />
     <PackageReference Include="MahApps.Metro" Version="2.4.10" />

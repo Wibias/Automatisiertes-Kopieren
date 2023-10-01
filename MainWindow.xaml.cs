@@ -1,9 +1,7 @@
-﻿using ClosedXML.Excel;
-using MahApps.Metro.Controls;
+﻿using MahApps.Metro.Controls;
 using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -24,6 +22,7 @@ namespace Automatisiertes_Kopieren
         private bool _isHandlingCheckboxEvent = false;
         private int _previousGroupSelectionIndex = 0;
         private List<string> _allKidNames = new List<string>();
+        private ExcelService _excelService;
 
         public MainWindow()
         {
@@ -38,7 +37,13 @@ namespace Automatisiertes_Kopieren
             else
             {
                 SelectHomeFolder();
+                if (string.IsNullOrEmpty(homeFolder))
+                {
+                    _loggingService.ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+                    throw new InvalidOperationException("Home folder must be set.");
+                }
             }
+            _excelService = new ExcelService(homeFolder);
 
             protokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
             protokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
@@ -76,99 +81,9 @@ namespace Automatisiertes_Kopieren
             }
         }
 
-        private (double? months, string? error, string? parsedBirthDate, string? gender) ExtractMonthsFromExcel(string group, string kidLastName, string kidFirstName)
+        private void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
         {
-            string convertedGroupName = ConvertSpecialCharacters(group, ConversionType.Umlaute);
-            string shortGroupName = convertedGroupName.Split(' ')[0];
-            string filePath = $@"{homeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
-            string? parsedBirthDate = null;
-            string genderValue = string.Empty;
-            double? extractedMonths = null;
-
-            if (string.IsNullOrEmpty(homeFolder))
-            {
-                _loggingService.ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
-                return (null, "HomeFolderNotSet", parsedBirthDate, genderValue);
-            }
-
-            try
-            {
-                using (var workbook = new XLWorkbook(filePath))
-                {
-                    var mainWorksheet = workbook.Worksheet("Monatsrechner");
-
-                    for (int row = 7; row <= 31; row++)
-                    {
-                        var lastNameCell = mainWorksheet.Cell(row, 3).Value.ToString();
-                        var firstNameCell = mainWorksheet.Cell(row, 4).Value.ToString();
-
-                        lastNameCell = lastNameCell.Trim();
-                        firstNameCell = firstNameCell.Trim();
-
-                        if (string.Equals(lastNameCell, kidLastName, StringComparison.OrdinalIgnoreCase) &&
-                            string.Equals(firstNameCell, kidFirstName, StringComparison.OrdinalIgnoreCase))
-                        {
-
-                            var birthDate = mainWorksheet.Cell(row, 5).Value.ToString();
-                            DateTime.TryParse(birthDate, out DateTime parsedDate);
-                            parsedBirthDate = parsedDate.ToString("dd.MM.yyyy");
-
-                            var monthsValueRaw = mainWorksheet.Cell(row, 6).Value.ToString();
-
-                            if (double.TryParse(monthsValueRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsedValue))
-                            {
-                                extractedMonths = Math.Round(parsedValue, 2);
-                            }
-
-                        }
-                    }
-
-                    var genderWorksheet = workbook.Worksheet("NAMES-BIRTDAYS-FILL-IN");
-
-                    for (int row = 4; row <= 28; row++)
-                    {
-                        var lastNameCell = genderWorksheet.Cell(row, 3).Value.ToString();
-                        var firstNameCell = genderWorksheet.Cell(row, 4).Value.ToString();
-
-                        lastNameCell = lastNameCell.Trim();
-                        firstNameCell = firstNameCell.Trim();
-
-                        if (string.Equals(lastNameCell, kidLastName, StringComparison.OrdinalIgnoreCase) &&
-                            string.Equals(firstNameCell, kidFirstName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            genderValue = genderWorksheet.Cell(row, 8).Value.ToString();
-                            break;
-                        }
-                    }
-                }
-            }
-            catch (FileNotFoundException)
-            {
-                _loggingService.LogAndShowMessage($"Die Datei {filePath} wurde nicht gefunden.",
-                                                  "Die Datei wurde nicht gefunden. Bitte überprüfen Sie den Pfad.");
-                return (null, "FileNotFound", parsedBirthDate, genderValue);
-            }
-            catch (IOException ioEx) when (ioEx.Message.Contains("because it is being used by another process"))
-            {
-                _loggingService.LogAndShowMessage($"Die Datei {filePath} wird von einem anderen Prozess verwendet.",
-                                                  "Die Excel-Datei ist geöffnet. Bitte schließen Sie die Datei und versuchen Sie es erneut.");
-                return (null, "FileInUse", parsedBirthDate, genderValue);
-            }
-            catch (Exception ex)
-            {
-                _loggingService.LogAndShowMessage($"Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten: {ex.Message}",
-                                                  "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.");
-                return (null, "UnexpectedError", parsedBirthDate, genderValue);
-            }
-
-            if (!extractedMonths.HasValue)
-            {
-                _loggingService.LogAndShowMessage($"Es konnte kein gültiger Monatswert für {kidFirstName} {kidLastName} extrahiert werden.",
-                                                  "Es konnte kein gültiger Monatswert extrahiert werden. Bitte überprüfen Sie die Daten.");
-                return (null, "ExtractionError", parsedBirthDate, genderValue);
-            }
-
-            return (extractedMonths, null, parsedBirthDate, genderValue);
+            _excelService.SelectHeutigesDatumEntwicklungsBericht(sender, e);
         }
 
         private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
@@ -225,7 +140,7 @@ namespace Automatisiertes_Kopieren
                     }
 
                     kidLastName = kidLastName.Trim();
-                    var result = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
+                    var result = _excelService.ExtractFromExcel(group, kidLastName, kidFirstName);
 
                     if (result.error == "HomeFolderNotSet")
                     {
@@ -338,7 +253,6 @@ namespace Automatisiertes_Kopieren
 
             return match.Groups[1].Value + "_Monate";
         }
-
 
         public static class OperationState
         {
@@ -479,7 +393,7 @@ namespace Automatisiertes_Kopieren
             string kidFirstName = nameParts[0];
             string kidLastName = nameParts[1];
 
-            var (months, error, parsedBirthDate, genderValue) = ExtractMonthsFromExcel(group, kidLastName, kidFirstName);
+            var (months, error, parsedBirthDate, genderValue) = _excelService.ExtractFromExcel(group, kidLastName, kidFirstName);
 
             if (months.HasValue)
             {

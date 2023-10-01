@@ -201,7 +201,7 @@
         <!-- Select Heutiges Datum Button -->
         <StackPanel Grid.Row="7" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,0,10,5" Grid.ColumnSpan="2" Orientation="Horizontal">
             <TextBlock Text="Heutiges Datum für Entwicklungsbericht" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <CheckBox Click="OnSelectHeutigesDatumEBericht" VerticalAlignment="Center"/>
+            <CheckBox Click="OnSelectHeutigesDatumEntwicklungsBericht" VerticalAlignment="Center"/>
         </StackPanel>
         <!-- Ausgabe TextBox -->
         <TextBox x:Name="outputTextBox" Grid.Row="8" Margin="10" IsReadOnly="True" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" TextWrapping="Wrap" Grid.ColumnSpan="2" />
