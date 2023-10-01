@@ -6,7 +6,65 @@
                  MinHeight="400" MinWidth="550"
                  Width="600" Height="600"
                  Closed="MainWindow_Closed">
-    <Grid>
+    <DockPanel>
+        <!-- Menu at the top -->
+        <Menu DockPanel.Dock="Top" FontSize="14">
+            <Menu.Resources>
+                <!-- Style for the top-level menu items -->
+                <Style x:Key="TopLevelMenuItemStyle" TargetType="MenuItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="MenuItem">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                    <Grid>
+                                        <ContentPresenter ContentSource="Header" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" />
+                                        <Popup x:Name="SubMenuPopup" Placement="Bottom" IsOpen="{Binding Path=IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True">
+                                            <Border x:Name="SubMenuBorder" Background="White" BorderBrush="#CCCCCC" BorderThickness="1">
+                                                <StackPanel IsItemsHost="True" />
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#E5E5E5"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSubmenuOpen" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#E5E5E5"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- Style for the child menu items -->
+                <Style TargetType="MenuItem">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="#333"/>
+                    <Setter Property="Padding" Value="10 5"/>
+                    <Setter Property="Height" Value="30"/>
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                    <Style.Triggers>
+                        <!-- Hover effect -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#E5E5E5"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Menu.Resources>
+
+            <Menu.Background>
+                <SolidColorBrush Color="Transparent"/>
+            </Menu.Background>
+            <MenuItem Header="Datei" Style="{StaticResource TopLevelMenuItemStyle}">
+                <MenuItem Header="Heimordner Auswählen" Click="OnSelectHomeFolderButtonClicked">
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*"/>
             <ColumnDefinition Width="3.5*"/>
@@ -32,7 +90,6 @@
             <RowDefinition Height="*"/>
             <!-- Output TextBox -->
         </Grid.RowDefinitions>
-
 
         <!-- Group Dropdown -->
         <Label Content="Gruppe:" Grid.Row="0" Margin="10,10,10,10" />
@@ -119,7 +176,6 @@
             <CheckBox x:Name="protokollbogenAutoCheckbox" Margin="0" VerticalAlignment="Center" Grid.Column="3" Checked="OnProtokollbogenAutoCheckboxChanged" Unchecked="OnProtokollbogenAutoCheckboxChanged"/>
         </Grid>
 
-
         <!-- Vorschulentwicklungsbericht -->
         <Grid Grid.Row="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10,0,10,5" Grid.ColumnSpan="2">
             <Grid.ColumnDefinitions>
@@ -140,11 +196,15 @@
             <CheckBox x:Name="allgemeinerEntwicklungsberichtCheckbox" Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="1" />
         </Grid>
 
-        <!-- Select Home Folder Button -->
-        <Button Content="Heimordner Auswählen" Grid.Row="7" HorizontalAlignment="Left" VerticalAlignment="Center" Width="160" Margin="10,0,0,0" Click="OnSelectHomeFolderButtonClicked" Grid.ColumnSpan="2"/>
-        <!-- Generate Button -->
+        <!-- Kopieren Button -->
         <Button Content="Kopieren" Grid.Row="7" HorizontalAlignment="Right" VerticalAlignment="Center" Width="100" Margin="0,0,10,0" Click="OnGenerateButtonClicked" Grid.Column="1"/>
-        <!-- Output TextBox -->
+        <!-- Select Heutiges Datum Button -->
+        <StackPanel Grid.Row="7" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,0,10,5" Grid.ColumnSpan="2" Orientation="Horizontal">
+            <TextBlock Text="Heutiges Datum für Entwicklungsbericht" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <CheckBox Click="OnSelectHeutigesDatumEBericht" VerticalAlignment="Center"/>
+        </StackPanel>
+        <!-- Ausgabe TextBox -->
         <TextBox x:Name="outputTextBox" Grid.Row="8" Margin="10" IsReadOnly="True" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" TextWrapping="Wrap" Grid.ColumnSpan="2" />
     </Grid>
+  </DockPanel>
 </mah:MetroWindow>

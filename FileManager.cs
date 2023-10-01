@@ -38,7 +38,7 @@ namespace Automatisiertes_Kopieren
                 if (File.Exists(destFile))
                 {
                     MessageBoxResult result = _loggingService.ShowMessage("Die Datei existiert bereits. Möchtest du diese ersetzen?",
-                        LoggingService.MessageType.Information,
+                        LoggingService.MessageType.Info,
                         "Confirm Replace",
                         MessageBoxButton.YesNo);
 
@@ -60,10 +60,12 @@ namespace Automatisiertes_Kopieren
         }
 
 
-        public Tuple <string, string> RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, string protokollNumber)
+        public Tuple<string, string, string, string> RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, string protokollNumber)
         {
             string? renamedProtokollbogenPath = null;
             string? renamedAllgemeinEntwicklungsberichtPath = null;
+            string? renamedProtokollElterngespraechPath = null;
+            string? renamedVorschulEntwicklungsberichtPath = null;
             kidName = StringUtilities.ConvertToTitleCase(kidName);
             kidName = StringUtilities.ConvertSpecialCharacters(kidName, StringUtilities.ConversionType.Umlaute, StringUtilities.ConversionType.Underscore);
 
@@ -73,7 +75,7 @@ namespace Automatisiertes_Kopieren
             if (!int.TryParse(Regex.Match(protokollNumber, @"\d+").Value, out numericProtokollNumber))
             {
                 _loggingService.LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}", LogLevel.Error);
-                return new Tuple<string, string>(string.Empty, string.Empty);
+                return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty, renamedAllgemeinEntwicklungsberichtPath ?? string.Empty, renamedProtokollElterngespraechPath ?? string.Empty, renamedVorschulEntwicklungsberichtPath ?? string.Empty);
             }
 
 
@@ -95,7 +97,9 @@ namespace Automatisiertes_Kopieren
                 {
                     string newFileName = $"{kidName}_Vorschul_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                    renamedVorschulEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
                 }
+
 
                 if (fileName.StartsWith("Kind_Protokollbogen_", StringComparison.OrdinalIgnoreCase) && isProtokollbogenChecked)
                 {
@@ -108,9 +112,10 @@ namespace Automatisiertes_Kopieren
                 {
                     string newFileName = $"{kidName}_Protokoll_Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                    renamedProtokollElterngespraechPath = Path.Combine(targetFolderPath, newFileName);
                 }
             }
-            return new Tuple<string, string>(renamedProtokollbogenPath ?? string.Empty, renamedAllgemeinEntwicklungsberichtPath ?? string.Empty);
+            return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty, renamedAllgemeinEntwicklungsberichtPath ?? string.Empty, renamedProtokollElterngespraechPath ?? string.Empty, renamedVorschulEntwicklungsberichtPath ?? string.Empty);
         }
 
         public static class StringUtilities
@@ -148,14 +153,14 @@ namespace Automatisiertes_Kopieren
             }
         }
 
-        public void CopyFilesFromSourceToTarget(string sourceFile, string targetFolderPath, string protokollbogenFileName)
+        public void CopyFilesFromSourceToTarget(string? sourceFile, string targetFolderPath, string protokollbogenFileName)
         {
             if (!Directory.Exists(targetFolderPath))
             {
                 Directory.CreateDirectory(targetFolderPath);
             }
 
-            if (File.Exists(sourceFile))
+            if (sourceFile != null && File.Exists(sourceFile))
             {
                 try
                 {
@@ -168,7 +173,7 @@ namespace Automatisiertes_Kopieren
             }
             else
             {
-                _loggingService.LogMessage($"File {protokollbogenFileName} not found in source folder.", LoggingService.LogLevel.Warning);
+                _loggingService.LogMessage($"File {protokollbogenFileName} not found in source folder.", LogLevel.Warning);
             }
         }
 
@@ -178,17 +183,17 @@ namespace Automatisiertes_Kopieren
             {
                 if (File.Exists(destFile))
                 {
-                    MessageBoxResult result = _loggingService.ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Information, "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
+                    MessageBoxResult result = _loggingService.ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info, "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
 
                     if (result == MessageBoxResult.Yes)
                     {
                         string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                         File.Move(destFile, backupFilename);
-                        _loggingService.ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}", LoggingService.MessageType.Information, "Info");
+                        _loggingService.ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}", LoggingService.MessageType.Info, "Info");
                     }
                     else
                     {
-                        _loggingService.ShowMessage("Die Datei wurde nicht kopiert.", LoggingService.MessageType.Information, "Info");
+                        _loggingService.ShowMessage("Die Datei wurde nicht kopiert.", LoggingService.MessageType.Info, "Info");
                         return;
                     }
                 }

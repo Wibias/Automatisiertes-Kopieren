@@ -16,7 +16,7 @@ namespace Automatisiertes_Kopieren
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
                 .CreateLogger();
         }
-        public void LogAndShowMessage(string logMessage, string userMessage, LogLevel logLevel = LogLevel.Information, MessageType messageType = MessageType.Information, string? title = null)
+        public void LogAndShowMessage(string logMessage, string userMessage, LogLevel logLevel = LogLevel.Info, MessageType messageType = MessageType.Info, string? title = null)
         {
             LogMessage(logMessage, logLevel);
             ShowMessage(userMessage, messageType, title);
@@ -25,11 +25,11 @@ namespace Automatisiertes_Kopieren
         public enum LogLevel
         {
             Error,
-            Information,
+            Info,
             Warning
         }
 
-        public void LogMessage(string message, LogLevel level = LogLevel.Information, Exception? exception = null)
+        public void LogMessage(string message, LogLevel level = LogLevel.Info, Exception? exception = null)
         {
             switch (level)
             {
@@ -43,7 +43,7 @@ namespace Automatisiertes_Kopieren
                         Log.Error(message);
                     }
                     break;
-                case LogLevel.Information:
+                case LogLevel.Info:
                     Log.Information(message);
                     break;
                 case LogLevel.Warning:
@@ -57,11 +57,11 @@ namespace Automatisiertes_Kopieren
         public enum MessageType
         {
             Error,
-            Information,
+            Info,
             Warning
         }
 
-        public MessageBoxResult ShowMessage(string message, MessageType type = MessageType.Information, string? title = null, MessageBoxButton button = MessageBoxButton.OK)
+        public MessageBoxResult ShowMessage(string message, MessageType type = MessageType.Info, string? title = null, MessageBoxButton button = MessageBoxButton.OK)
         {
             MessageBoxImage icon;
 
@@ -71,7 +71,7 @@ namespace Automatisiertes_Kopieren
                     icon = MessageBoxImage.Error;
                     title = title ?? "Fehler";
                     break;
-                case MessageType.Information:
+                case MessageType.Info:
                     icon = MessageBoxImage.Information;
                     title = title ?? "Information";
                     break;
