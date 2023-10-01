@@ -3,7 +3,6 @@ using System;
 using System.IO;
 using System.Windows;
 
-
 namespace Automatisiertes_Kopieren
 {
     public class LoggingService

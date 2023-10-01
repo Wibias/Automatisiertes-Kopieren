@@ -60,24 +60,22 @@ namespace Automatisiertes_Kopieren
         }
 
 
-        public string RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, string protokollNumber)
+        public Tuple <string, string> RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, string protokollNumber)
         {
             string? renamedProtokollbogenPath = null;
+            string? renamedAllgemeinEntwicklungsberichtPath = null;
             kidName = StringUtilities.ConvertToTitleCase(kidName);
             kidName = StringUtilities.ConvertSpecialCharacters(kidName, StringUtilities.ConversionType.Umlaute, StringUtilities.ConversionType.Underscore);
 
             reportMonth = StringUtilities.ConvertToTitleCase(reportMonth);
             reportMonth = StringUtilities.ConvertSpecialCharacters(reportMonth, StringUtilities.ConversionType.Umlaute, StringUtilities.ConversionType.Underscore);
             int numericProtokollNumber;
-            if (int.TryParse(Regex.Match(protokollNumber, @"\d+").Value, out numericProtokollNumber))
+            if (!int.TryParse(Regex.Match(protokollNumber, @"\d+").Value, out numericProtokollNumber))
             {
-                // Now you can use numericProtokollNumber as an integer.
+                _loggingService.LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}", LogLevel.Error);
+                return new Tuple<string, string>(string.Empty, string.Empty);
             }
-            else
-            {
-                _loggingService.LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}", LoggingService.LogLevel.Error);
-                return string.Empty;
-            }
+
 
             string[] files = Directory.GetFiles(targetFolderPath);
 
@@ -90,6 +88,7 @@ namespace Automatisiertes_Kopieren
                 {
                     string newFileName = $"{kidName}_Allgemeiner_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                    renamedAllgemeinEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
                 }
 
                 if (fileName.Equals("Vorschul-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isVorschulChecked)
@@ -111,7 +110,7 @@ namespace Automatisiertes_Kopieren
                     SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
                 }
             }
-            return renamedProtokollbogenPath ?? string.Empty;
+            return new Tuple<string, string>(renamedProtokollbogenPath ?? string.Empty, renamedAllgemeinEntwicklungsberichtPath ?? string.Empty);
         }
 
         public static class StringUtilities

@@ -372,6 +372,8 @@ namespace Automatisiertes_Kopieren
             bool isVorschulChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
             bool isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
 
+            var (renamedProtokollbogenPath, renamedAllgemeinEntwicklungsberichtPath) = _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
+
             if (protokollbogenData.HasValue && !string.IsNullOrEmpty(sourceFolderPath))
             {
                 if (isProtokollbogenChecked)
@@ -425,12 +427,16 @@ namespace Automatisiertes_Kopieren
                 }
             }
 
-            string renamedProtokollbogenPath = _fileManager.RenameFilesInTargetDirectory(targetFolderPath, kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschulChecked, isProtokollbogenChecked, numericProtokollNumber);
-
             if (!string.IsNullOrEmpty(renamedProtokollbogenPath))
             {
                 var fillPdf = new FillPDF();
                 fillPdf.FillProtokollbogen(renamedProtokollbogenPath, kidName, months.HasValue ? months.Value : 0, group);
+            }
+
+            if (!string.IsNullOrEmpty(renamedAllgemeinEntwicklungsberichtPath))
+            {
+                var fillPdf = new FillPDF();
+                fillPdf.FillProtokollbogen(renamedAllgemeinEntwicklungsberichtPath, kidName, months.HasValue ? months.Value : 0, group);
             }
 
             if (OperationState.OperationsSuccessful)
