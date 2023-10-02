@@ -2,7 +2,7 @@
 using System.IO;
 using iText.Forms;
 using iText.Kernel.Pdf;
-using static Automatisiertes_Kopieren.LoggingService;
+using static Automatisiertes_Kopieren.LoggingHelper;
 
 namespace Automatisiertes_Kopieren;
 

@@ -5,7 +5,7 @@ using Serilog;
 
 namespace Automatisiertes_Kopieren;
 
-public static class LoggingService
+public static class LoggingHelper
 {
     public enum LogLevel
     {

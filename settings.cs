@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using Newtonsoft.Json;
-using static Automatisiertes_Kopieren.LoggingService;
+using static Automatisiertes_Kopieren.LoggingHelper;
 
 namespace Automatisiertes_Kopieren;
 

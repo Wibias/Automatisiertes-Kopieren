@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Input;
-using static Automatisiertes_Kopieren.LoggingService;
+using static Automatisiertes_Kopieren.LoggingHelper;
 
 namespace Automatisiertes_Kopieren;
 

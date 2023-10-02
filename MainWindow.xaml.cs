@@ -10,7 +10,7 @@ using Ookii.Dialogs.Wpf;
 using Serilog;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
 using static Automatisiertes_Kopieren.PdfHelper;
-using static Automatisiertes_Kopieren.LoggingService;
+using static Automatisiertes_Kopieren.LoggingHelper;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace Automatisiertes_Kopieren;
@@ -18,7 +18,7 @@ namespace Automatisiertes_Kopieren;
 public partial class MainWindow
 {
     private readonly AutoCompleteHelper _autoComplete;
-    private readonly ExcelService _excelService;
+    private readonly ExcelHelper _excelHelper;
     private List<string> _allKidNames = new();
     private FileManager? _fileManager;
 
@@ -45,7 +45,7 @@ public partial class MainWindow
             }
         }
 
-        _excelService = new ExcelService(HomeFolder);
+        _excelHelper = new ExcelHelper(HomeFolder);
 
         ProtokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
         ProtokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
@@ -78,7 +78,7 @@ public partial class MainWindow
 
     private void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
     {
-        _excelService.SelectHeutigesDatumEntwicklungsBericht(sender);
+        _excelHelper.SelectHeutigesDatumEntwicklungsBericht(sender);
     }
 
     private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
@@ -136,7 +136,7 @@ public partial class MainWindow
 
             kidLastName = kidLastName.Trim();
             var (months, error, _, _) =
-                _excelService.ExtractFromExcel(group, kidLastName, kidFirstName);
+                _excelHelper.ExtractFromExcel(group, kidLastName, kidFirstName);
 
             switch (error)
             {
@@ -355,7 +355,7 @@ public partial class MainWindow
         var kidLastName = nameParts[1];
 
         var (months, _, parsedBirthDate, genderValue) =
-            _excelService.ExtractFromExcel(group, kidLastName, kidFirstName);
+            _excelHelper.ExtractFromExcel(group, kidLastName, kidFirstName);
 
         if (months.HasValue)
         {

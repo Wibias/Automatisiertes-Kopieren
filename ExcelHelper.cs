@@ -5,15 +5,15 @@ using System.Windows.Controls;
 using ClosedXML.Excel;
 using OfficeOpenXml;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
-using static Automatisiertes_Kopieren.LoggingService;
+using static Automatisiertes_Kopieren.LoggingHelper;
 
 namespace Automatisiertes_Kopieren;
 
-public class ExcelService
+public class ExcelHelper
 {
     private readonly string _homeFolder;
 
-    public ExcelService(string homeFolder)
+    public ExcelHelper(string homeFolder)
     {
         _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
     }
