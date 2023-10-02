@@ -101,7 +101,7 @@
 
         <!-- Kid Name -->
         <Label Content="Kind Name:" Grid.Row="1" Grid.Column="0" Margin="10,0,10,10" />
-        <ComboBox x:Name="KidNameComboBox" PreviewTextInput="KidNameComboBox_PreviewTextInput" PreviewKeyDown="KidNameComboBox_PreviewKeyDown" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" IsEditable="True" Loaded="KidNameComboBox_Loaded" />
+        <ComboBox x:Name="KidNameComboBox" PreviewTextInput="KidNameComboBox_PreviewTextInput" PreviewKeyDown="KidNameComboBox_PreviewKeyDown" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" IsTextSearchEnabled="False" IsEditable="True" Loaded="KidNameComboBox_Loaded"/>
 
         <!-- Report Month -->
         <Label Content="E-Bericht Monat:" Grid.Row="2" Grid.Column="0" Margin="10,0,10,10" />

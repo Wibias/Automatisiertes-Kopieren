@@ -1,17 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Forms;
 using System.Windows.Input;
 using Ookii.Dialogs.Wpf;
 using Serilog;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
 using static Automatisiertes_Kopieren.PdfHelper;
 using static Automatisiertes_Kopieren.LoggingHelper;
-using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace Automatisiertes_Kopieren;
 
@@ -19,7 +16,6 @@ public partial class MainWindow
 {
     private readonly AutoCompleteHelper _autoComplete;
     private readonly ExcelHelper _excelHelper;
-    private List<string> _allKidNames = new();
     private FileManager? _fileManager;
 
     private string? _homeFolder;
@@ -28,8 +24,8 @@ public partial class MainWindow
     public MainWindow()
     {
         InitializeLogger();
-        InitializeComponent();
         _autoComplete = new AutoCompleteHelper(this);
+        InitializeComponent();
         var settings = AppSettings.LoadSettings();
         if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
         {
@@ -63,6 +59,11 @@ public partial class MainWindow
         }
     }
 
+    public void SetHomeFolder(string path)
+    {
+        HomeFolder = path;
+    }
+
     private void OnSelectHomeFolderButtonClicked(object sender, RoutedEventArgs e)
     {
         SelectHomeFolder();
@@ -84,6 +85,11 @@ public partial class MainWindow
     private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
     {
         _autoComplete.KidNameComboBox_Loaded();
+    }
+
+    private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
+    {
+        _autoComplete.OnGroupSelected(e);
     }
 
     private void KidNameComboBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -440,52 +446,6 @@ public partial class MainWindow
             !string.IsNullOrWhiteSpace(selectedReportYear)) return true;
         ShowMessage("Bitte füllen Sie alle geforderten Felder aus.", MessageType.Error);
         return false;
-    }
-
-    private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
-    {
-        if (KidNameComboBox == null) return;
-
-        if (string.IsNullOrEmpty(HomeFolder))
-        {
-            var result = ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
-                "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                using var dialog = new FolderBrowserDialog();
-                var dialogResult = dialog.ShowDialog();
-                if (dialogResult == System.Windows.Forms.DialogResult.OK)
-                    HomeFolder = dialog.SelectedPath;
-                else
-                    return;
-            }
-            else
-            {
-                return;
-            }
-        }
-
-        switch (e.AddedItems.Count)
-        {
-            case > 0 when e.AddedItems[0] is ComboBoxItem { Content: string selectedGroup } &&
-                          !string.IsNullOrEmpty(selectedGroup):
-            {
-                _autoComplete.GetKidNamesForGroup(selectedGroup);
-                _allKidNames = _autoComplete.GetKidNamesForGroup(selectedGroup);
-                KidNameComboBox.ItemsSource = _allKidNames;
-                break;
-            }
-            case > 0:
-                LogMessage(
-                    $"e.AddedItems[0] type: {e.AddedItems[0]?.GetType().Name ?? "null"}, value: {e.AddedItems[0]}",
-                    LogLevel.Warning);
-                LogMessage("Selected group is empty or not a valid ComboBoxItem.", LogLevel.Warning);
-                break;
-            default:
-                LogMessage("No group selected.", LogLevel.Warning);
-                break;
-        }
     }
 
     private void SelectHomeFolder()

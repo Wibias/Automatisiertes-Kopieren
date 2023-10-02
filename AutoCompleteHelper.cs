@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using System.Windows.Input;
 using static Automatisiertes_Kopieren.LoggingHelper;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using TextBox = System.Windows.Controls.TextBox;
 
 namespace Automatisiertes_Kopieren;
 
@@ -22,12 +26,12 @@ public class AutoCompleteHelper
     {
         if (_mainWindow.KidNameComboBox?.Template.FindName("PART_EditableTextBox", _mainWindow.KidNameComboBox) is not
             TextBox textBox) return;
-        var futureText = textBox.Text.Insert(textBox.CaretIndex, e.Text);
+
+        var currentText = textBox.Text + e.Text;
 
         var filteredNames = _allKidNames
-            .Where(name => name.StartsWith(futureText, StringComparison.OrdinalIgnoreCase))
+            .Where(name => name.StartsWith(currentText, StringComparison.OrdinalIgnoreCase))
             .ToList();
-
         if (filteredNames.Count == 0)
         {
             _mainWindow.KidNameComboBox.ItemsSource = _allKidNames;
@@ -36,9 +40,10 @@ public class AutoCompleteHelper
         }
 
         _mainWindow.KidNameComboBox.ItemsSource = filteredNames;
-        _mainWindow.KidNameComboBox.Text = futureText;
-        textBox.CaretIndex = futureText.Length;
+        _mainWindow.KidNameComboBox.Text = currentText;
+        textBox.CaretIndex = currentText.Length;
         _mainWindow.KidNameComboBox.IsDropDownOpen = true;
+        _mainWindow.GroupDropdown.SelectedItem = "Bären";
 
         e.Handled = true;
     }
@@ -410,22 +415,91 @@ public class AutoCompleteHelper
 
     public void KidNameComboBox_Loaded()
     {
-        if (_mainWindow.GroupDropdown.SelectedIndex != 0) return;
-        var defaultKidNames = GetKidNamesForGroup("Bären");
-        _allKidNames = defaultKidNames;
+        var selectedGroup = (_mainWindow.GroupDropdown.SelectedItem as ComboBoxItem)?.Content as string;
+
+        if (string.IsNullOrEmpty(selectedGroup)) selectedGroup = "Bären";
+
+        var kidNamesForSelectedGroup = GetKidNamesForGroup(selectedGroup);
+        _allKidNames = kidNamesForSelectedGroup;
         _mainWindow.KidNameComboBox.ItemsSource = _allKidNames;
+
+        if (_mainWindow.KidNameComboBox.Template.FindName("PART_EditableTextBox", _mainWindow.KidNameComboBox) is
+            TextBox textBox)
+            textBox.TextChanged += KidNameComboBoxTextBox_TextChanged;
+    }
+
+    private void KidNameComboBoxTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (sender is not TextBox textBox) return;
+
+        var currentText = textBox.Text;
+
+        if (string.IsNullOrEmpty(currentText))
+        {
+            _mainWindow.KidNameComboBox.ItemsSource = _allKidNames;
+        }
+        else
+        {
+            var filteredNames = _allKidNames
+                .Where(name => name.StartsWith(currentText, StringComparison.OrdinalIgnoreCase)).ToList();
+            _mainWindow.KidNameComboBox.ItemsSource = filteredNames;
+        }
+
+        textBox.Text = currentText;
+        textBox.CaretIndex = currentText.Length;
+
+        if (!_mainWindow.KidNameComboBox.IsDropDownOpen && _mainWindow.KidNameComboBox.HasItems)
+            _mainWindow.KidNameComboBox.IsDropDownOpen = true;
+    }
+
+    public void OnGroupSelected(SelectionChangedEventArgs e)
+    {
+        if (_mainWindow.KidNameComboBox == null) return;
+        LogMessage("OnGroupSelected triggered.");
+        if (string.IsNullOrEmpty(_mainWindow.HomeFolder))
+        {
+            var result = ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
+                "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                using var dialog = new FolderBrowserDialog();
+                var dialogResult = dialog.ShowDialog();
+                if (dialogResult == DialogResult.OK)
+                    _mainWindow.SetHomeFolder(dialog.SelectedPath);
+                else
+                    return;
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxItem { Content: string selectedGroup } &&
+            !string.IsNullOrEmpty(selectedGroup))
+        {
+            _allKidNames =
+                GetKidNamesForGroup(selectedGroup);
+            KidNameComboBox_Loaded();
+        }
+        else
+        {
+            LogMessage("No valid group selected.", LogLevel.Warning);
+        }
     }
 
     public List<string> GetKidNamesForGroup(string groupName)
     {
+        LogMessage($"Getting kid names for group: {groupName}");
         var path = groupName switch
+
         {
             "Bären" => @"Entwicklungsberichte\Baeren Entwicklungsberichte\Aktuell",
             "Löwen" => @"Entwicklungsberichte\Loewen Entwicklungsberichte\Aktuell",
             "Schnecken" => @"Entwicklungsberichte\Schnecken Entwicklungsberichte\Aktuell",
             _ => string.Empty
         };
-
         return GetKidNamesFromDirectory(path);
     }
 
@@ -434,18 +508,12 @@ public class AutoCompleteHelper
         if (_mainWindow.HomeFolder != null)
         {
             var fullPath = Path.Combine(_mainWindow.HomeFolder, groupPath);
-            if (Directory.Exists(fullPath))
-            {
-                var directories = Directory.GetDirectories(fullPath);
-                return directories.Select(Path.GetFileName).OfType<string>().ToList();
-            }
+            if (!Directory.Exists(fullPath)) return new List<string>();
+            var directories = Directory.GetDirectories(fullPath);
+            return directories.Select(Path.GetFileName).OfType<string>().ToList();
+        }
 
-            LogMessage($"Directory does not exist: {fullPath}", LogLevel.Warning);
-        }
-        else
-        {
-            LogMessage("_homeFolder is not set.", LogLevel.Warning);
-        }
+        LogMessage("_homeFolder is not set.", LogLevel.Warning);
 
         return new List<string>();
     }
