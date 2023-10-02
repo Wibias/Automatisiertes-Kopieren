@@ -49,21 +49,17 @@ namespace Automatisiertes_Kopieren
                     lastNameCell = lastNameCell.Trim();
                     firstNameCell = firstNameCell.Trim();
 
-                    if (string.Equals(lastNameCell, kidLastName, StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(firstNameCell, kidFirstName, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(lastNameCell, kidLastName, StringComparison.OrdinalIgnoreCase) ||
+                        !string.Equals(firstNameCell, kidFirstName, StringComparison.OrdinalIgnoreCase)) continue;
+                    var birthDate = mainWorksheet.Cell(row, 5).Value.ToString();
+                    DateTime.TryParse(birthDate, out DateTime parsedDate);
+                    parsedBirthDate = parsedDate.ToString("dd.MM.yyyy");
+
+                    var monthsValueRaw = mainWorksheet.Cell(row, 6).Value.ToString();
+
+                    if (double.TryParse(monthsValueRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsedValue))
                     {
-
-                        var birthDate = mainWorksheet.Cell(row, 5).Value.ToString();
-                        DateTime.TryParse(birthDate, out DateTime parsedDate);
-                        parsedBirthDate = parsedDate.ToString("dd.MM.yyyy");
-
-                        var monthsValueRaw = mainWorksheet.Cell(row, 6).Value.ToString();
-
-                        if (double.TryParse(monthsValueRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsedValue))
-                        {
-                            extractedMonths = Math.Round(parsedValue, 2);
-                        }
-
+                        extractedMonths = Math.Round(parsedValue, 2);
                     }
                 }
 
