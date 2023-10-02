@@ -1,42 +1,42 @@
-﻿using Serilog;
-using System;
+﻿using System;
+using System.IO;
+using Newtonsoft.Json;
+using static Automatisiertes_Kopieren.LoggingService;
 
-namespace Automatisiertes_Kopieren
+namespace Automatisiertes_Kopieren;
+
+public class AppSettings
 {
-    public class AppSettings
+    private static readonly LoggingService LoggingService = new();
+    public string? HomeFolderPath { get; init; }
+
+    public static void SaveSettings(AppSettings settings)
     {
-        public string? HomeFolderPath { get; set; }
-
-        public void SaveSettings(AppSettings settings)
+        try
         {
-            try
-            {
-                string json = Newtonsoft.Json.JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented);
-                string path = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Automatisiertes_Kopieren", "settings.json");
+            var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Automatisiertes_Kopieren", "settings.json");
 
-                Log.Information($"Attempting to save settings to: {path}");
+            LogMessage($"Attempting to save settings to: {path}", LogLevel.Warning);
 
-                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
-                System.IO.File.WriteAllText(path, json);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, json);
 
-                Log.Information("Settings saved successfully.");
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Error saving settings: {ex.Message}");
-            }
+            LogMessage("Settings saved successfully.");
         }
-
-        public AppSettings? LoadSettings()
+        catch (Exception ex)
         {
-            string path = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Automatisiertes_Kopieren", "settings.json");
-            if (System.IO.File.Exists(path))
-            {
-                string json = System.IO.File.ReadAllText(path);
-                return Newtonsoft.Json.JsonConvert.DeserializeObject<AppSettings>(json);
-            }
-            return new AppSettings();
+            LogMessage($"Error saving settings: {ex.Message}", LogLevel.Warning);
         }
+    }
 
+    public static AppSettings? LoadSettings()
+    {
+        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Automatisiertes_Kopieren", "settings.json");
+        if (!File.Exists(path)) return new AppSettings();
+        var json = File.ReadAllText(path);
+        return JsonConvert.DeserializeObject<AppSettings>(json);
     }
 }

@@ -39,9 +39,9 @@ public static class ValidationHelper
         };
 
 
-        foreach (var range in protokollbogenRanges.OrderByDescending(r => r.start))
-            if (monthsAndDays >= range.start && monthsAndDays <= range.end)
-                return range.value;
+        foreach (var (start, end, value) in protokollbogenRanges.OrderByDescending(r => r.start))
+            if (monthsAndDays >= start && monthsAndDays <= end)
+                return value;
 
         LoggingService.LogAndShowMessage($"No Protokollbogen for Month value found: {monthsAndDays}",
             $"Kein Protokollbogen für folgenden Monatswert gefunden: {monthsAndDays}",
@@ -80,14 +80,10 @@ public static class ValidationHelper
         var kidNameExists = Directory.GetDirectories(groupPath).Any(dir =>
             dir.Split(Path.DirectorySeparatorChar).Last().Equals(kidName, StringComparison.OrdinalIgnoreCase));
 
-        if (!kidNameExists)
-        {
-            LoggingService.LogAndShowMessage($"Kid name not found in group directory: {kidName}",
-                "Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.");
-            return null;
-        }
-
-        return kidName;
+        if (kidNameExists) return kidName;
+        LoggingService.LogAndShowMessage($"Kid name not found in group directory: {kidName}",
+            "Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.");
+        return null;
     }
 
     public static int? ValidateReportYearFromTextbox(string reportYearText)

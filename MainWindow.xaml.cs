@@ -280,7 +280,7 @@ public partial class MainWindow
                 PdfType.ProtokollElterngespraech, parsedBirthDate, genderValue);
         if (!string.IsNullOrEmpty(vorschuleEntwicklungsberichtPath))
             FillPdf(vorschuleEntwicklungsberichtPath, kidName, months ?? 0, group,
-                PdfType.VorschulEntwicklungsbericht, parsedBirthDate, genderValue);
+                PdfType.VorschuleEntwicklungsbericht, parsedBirthDate, genderValue);
     }
 
     private void CopyRequiredFiles((string directoryPath, string fileName)? protokollbogenData, string sourceFolderPath,
