@@ -7,7 +7,6 @@ namespace Automatisiertes_Kopieren;
 
 public class AppSettings
 {
-    private static readonly LoggingService LoggingService = new();
     public string? HomeFolderPath { get; init; }
 
     public static void SaveSettings(AppSettings settings)

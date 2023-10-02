@@ -4,13 +4,13 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
+using static Automatisiertes_Kopieren.LoggingService;
+
 
 namespace Automatisiertes_Kopieren;
 
 public static class ValidationHelper
 {
-    private static readonly LoggingService LoggingService = new();
-
     public static (string directoryPath, string fileName)? DetermineProtokollbogen(double monthsAndDays)
     {
         var protokollbogenRanges = new List<(double start, double end, (string directoryPath, string fileName) value)>
@@ -43,9 +43,9 @@ public static class ValidationHelper
             if (monthsAndDays >= start && monthsAndDays <= end)
                 return value;
 
-        LoggingService.LogAndShowMessage($"No Protokollbogen for Month value found: {monthsAndDays}",
+        LogAndShowMessage($"No Protokollbogen for Month value found: {monthsAndDays}",
             $"Kein Protokollbogen für folgenden Monatswert gefunden: {monthsAndDays}",
-            LoggingService.LogLevel.Warning);
+            LogLevel.Warning);
         MainWindow.OperationState.OperationsSuccessful = false;
         return null;
     }
@@ -60,7 +60,7 @@ public static class ValidationHelper
     {
         if (string.IsNullOrWhiteSpace(kidName))
         {
-            LoggingService.LogAndShowMessage("Kid name is empty or whitespace.",
+            LogAndShowMessage("Kid name is empty or whitespace.",
                 "Bitte geben Sie den Namen eines Kindes an.");
             return null;
         }
@@ -72,7 +72,7 @@ public static class ValidationHelper
 
         if (!Directory.Exists(groupPath))
         {
-            LoggingService.LogAndShowMessage($"Group path does not exist: {groupPath}",
+            LogAndShowMessage($"Group path does not exist: {groupPath}",
                 $"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
             return null;
         }
@@ -81,7 +81,7 @@ public static class ValidationHelper
             dir.Split(Path.DirectorySeparatorChar).Last().Equals(kidName, StringComparison.OrdinalIgnoreCase));
 
         if (kidNameExists) return kidName;
-        LoggingService.LogAndShowMessage($"Kid name not found in group directory: {kidName}",
+        LogAndShowMessage($"Kid name not found in group directory: {kidName}",
             "Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.");
         return null;
     }

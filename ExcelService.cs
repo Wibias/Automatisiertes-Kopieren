@@ -11,7 +11,6 @@ namespace Automatisiertes_Kopieren;
 
 public class ExcelService
 {
-    private static readonly LoggingService LoggingService = new();
     private readonly string _homeFolder;
 
     public ExcelService(string homeFolder)
@@ -35,7 +34,7 @@ public class ExcelService
 
         if (string.IsNullOrEmpty(_homeFolder))
         {
-            LoggingService.ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
+            ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
             return (null, "HomeFolderNotSet", parsedBirthDate, genderValue);
         }
 
@@ -99,26 +98,26 @@ public class ExcelService
         }
         catch (FileNotFoundException)
         {
-            LoggingService.LogAndShowMessage($"Die Datei {filePath} wurde nicht gefunden.",
+            LogAndShowMessage($"Die Datei {filePath} wurde nicht gefunden.",
                 "Die Datei wurde nicht gefunden. Bitte überprüfen Sie den Pfad.");
             return (null, "FileNotFound", parsedBirthDate, genderValue);
         }
         catch (IOException ioEx) when (ioEx.Message.Contains("because it is being used by another process"))
         {
-            LoggingService.LogAndShowMessage($"Die Datei {filePath} wird von einem anderen Prozess verwendet.",
+            LogAndShowMessage($"Die Datei {filePath} wird von einem anderen Prozess verwendet.",
                 "Die Excel-Datei ist geöffnet. Bitte schließen Sie die Datei und versuchen Sie es erneut.");
             return (null, "FileInUse", parsedBirthDate, genderValue);
         }
         catch (Exception ex)
         {
-            LoggingService.LogAndShowMessage(
+            LogAndShowMessage(
                 $"Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten: {ex.Message}",
                 "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.");
             return (null, "UnexpectedError", parsedBirthDate, genderValue);
         }
 
         if (extractedMonths.HasValue) return (extractedMonths, null, parsedBirthDate, genderValue);
-        LoggingService.LogAndShowMessage(
+        LogAndShowMessage(
             $"Es konnte kein gültiger Monatswert für {kidFirstName} {kidLastName} extrahiert werden.",
             "Es konnte kein gültiger Monatswert extrahiert werden. Bitte überprüfen Sie die Daten.");
         return (null, "ExtractionError", parsedBirthDate, genderValue);
@@ -153,7 +152,7 @@ public class ExcelService
         }
         catch (Exception ex)
         {
-            LoggingService.LogAndShowMessage(ex.Message, "Error updating Excel file.");
+            LogAndShowMessage(ex.Message, "Error updating Excel file.");
         }
     }
 }

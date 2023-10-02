@@ -17,8 +17,7 @@ namespace Automatisiertes_Kopieren;
 
 public partial class MainWindow
 {
-    private static readonly LoggingService LoggingService = new();
-    private readonly AutoComplete _autoComplete;
+    private readonly AutoCompleteHelper _autoComplete;
     private readonly ExcelService _excelService;
     private List<string> _allKidNames = new();
     private FileManager? _fileManager;
@@ -28,10 +27,10 @@ public partial class MainWindow
 
     public MainWindow()
     {
-        LoggingService.InitializeLogger();
+        InitializeLogger();
         InitializeComponent();
-        _autoComplete = new AutoComplete(this);
-        var settings = new AppSettings().LoadSettings();
+        _autoComplete = new AutoCompleteHelper(this);
+        var settings = AppSettings.LoadSettings();
         if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
         {
             HomeFolder = settings.HomeFolderPath;
@@ -41,7 +40,7 @@ public partial class MainWindow
             SelectHomeFolder();
             if (string.IsNullOrEmpty(HomeFolder))
             {
-                LoggingService.ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+                ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
                 throw new InvalidOperationException("Home folder must be set.");
             }
         }
@@ -74,7 +73,7 @@ public partial class MainWindow
         if (HomeFolder != null)
             _fileManager = new FileManager(HomeFolder);
         else
-            LoggingService.ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+            ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
     }
 
     private void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
@@ -84,17 +83,17 @@ public partial class MainWindow
 
     private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
     {
-        _autoComplete.KidNameComboBox_Loaded(sender, e);
+        _autoComplete.KidNameComboBox_Loaded();
     }
 
     private void KidNameComboBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
     {
-        _autoComplete.OnKidNameComboBoxPreviewTextInput(sender, e);
+        _autoComplete.OnKidNameComboBoxPreviewTextInput(e);
     }
 
     private void KidNameComboBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        _autoComplete.OnKidNameComboBoxPreviewKeyDown(sender, e);
+        _autoComplete.OnKidNameComboBoxPreviewKeyDown(e, new ArgumentOutOfRangeException());
     }
 
     private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
@@ -139,11 +138,11 @@ public partial class MainWindow
             switch (error)
             {
                 case "HomeFolderNotSet":
-                    LoggingService.ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
+                    ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
                     protokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 case "FileNotFound":
-                    LoggingService.ShowMessage(
+                    ShowMessage(
                         "Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.",
                         MessageType.Error);
                     protokollbogenAutoCheckbox.IsChecked = false;
@@ -151,13 +150,13 @@ public partial class MainWindow
             }
 
             if (months.HasValue) return;
-            LoggingService.ShowMessage("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.",
+            ShowMessage("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.",
                 MessageType.Error);
             protokollbogenAutoCheckbox.IsChecked = false;
         }
         else
         {
-            LoggingService.ShowMessage("Ungültiger Name. Bitte überprüfen Sie die Daten.", MessageType.Error);
+            ShowMessage("Ungültiger Name. Bitte überprüfen Sie die Daten.", MessageType.Error);
             protokollbogenAutoCheckbox.IsChecked = false;
         }
     }
@@ -182,14 +181,14 @@ public partial class MainWindow
             }
             else
             {
-                LoggingService.ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+                ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
                 return false;
             }
         }
 
         if (HomeFolder == null)
         {
-            LoggingService.ShowMessage("Das Hauptverzeichnis ist nicht festgelegt.", MessageType.Error);
+            ShowMessage("Das Hauptverzeichnis ist nicht festgelegt.", MessageType.Error);
             return false;
         }
 
@@ -197,7 +196,7 @@ public partial class MainWindow
         var validatedKidName = ValidationHelper.ValidateKidName(kidName, HomeFolder, groupDropdown.Text);
         if (string.IsNullOrEmpty(validatedKidName))
         {
-            LoggingService.ShowMessage("Ungültiger Kinder-Name", MessageType.Error);
+            ShowMessage("Ungültiger Kinder-Name", MessageType.Error);
             return false;
         }
 
@@ -207,13 +206,13 @@ public partial class MainWindow
             var parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
             if (!parsedYear.HasValue)
             {
-                LoggingService.ShowMessage("Bitte geben Sie ein gültiges Jahr für den Bericht an.", MessageType.Error);
+                ShowMessage("Bitte geben Sie ein gültiges Jahr für den Bericht an.", MessageType.Error);
                 return false;
             }
         }
         catch (Exception ex)
         {
-            LoggingService.ShowMessage(
+            ShowMessage(
                 $"Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten: {ex.Message}",
                 MessageType.Error);
             return false;
@@ -231,7 +230,7 @@ public partial class MainWindow
 
         if (!match.Success)
         {
-            LoggingService.ShowMessage("Fehler beim Extrahieren der Protokollnummer.", MessageType.Error);
+            ShowMessage("Fehler beim Extrahieren der Protokollnummer.", MessageType.Error);
             return null;
         }
 
@@ -242,7 +241,7 @@ public partial class MainWindow
     {
         if (HomeFolder == null)
         {
-            LoggingService.ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+            ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
             return false;
         }
 
@@ -252,14 +251,14 @@ public partial class MainWindow
     private string? ValidateKidName()
     {
         var validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, HomeFolder!, groupDropdown.Text);
-        if (validatedKidName == null) LoggingService.ShowMessage("Ungültiger Kinder-Name.", MessageType.Error);
+        if (validatedKidName == null) ShowMessage("Ungültiger Kinder-Name.", MessageType.Error);
         return validatedKidName;
     }
 
     private int? ValidateReportYear()
     {
         var reportYearNullable = ValidationHelper.ValidateReportYearFromTextbox(reportYearTextbox.Text);
-        if (!reportYearNullable.HasValue) LoggingService.ShowMessage("Ungültiges Jahr.", MessageType.Error);
+        if (!reportYearNullable.HasValue) ShowMessage("Ungültiges Jahr.", MessageType.Error);
         return reportYearNullable;
     }
 
@@ -302,7 +301,7 @@ public partial class MainWindow
             _fileManager.CopyFilesFromSourceToTarget(allgemeinerFilePath, targetFolderPath,
                 Path.GetFileName(allgemeinerFilePath));
         else if (!File.Exists(allgemeinerFilePath))
-            LoggingService.LogMessage(
+            LogMessage(
                 $"File 'Allgemeiner-Entwicklungsbericht.pdf' not found at {allgemeinerFilePath}.", LogLevel.Warning);
 
         var vorschuleFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschule-Entwicklungsbericht.pdf");
@@ -311,7 +310,7 @@ public partial class MainWindow
             _fileManager.CopyFilesFromSourceToTarget(vorschuleFilePath, targetFolderPath,
                 Path.GetFileName(vorschuleFilePath));
         else if (!File.Exists(vorschuleFilePath))
-            LoggingService.LogMessage($"File 'Vorschule-Entwicklungsbericht.pdf' not found at {vorschuleFilePath}.",
+            LogMessage($"File 'Vorschule-Entwicklungsbericht.pdf' not found at {vorschuleFilePath}.",
                 LogLevel.Warning);
 
         var protokollElterngespraechFilePath =
@@ -321,7 +320,7 @@ public partial class MainWindow
             _fileManager.CopyFilesFromSourceToTarget(protokollElterngespraechFilePath, targetFolderPath,
                 Path.GetFileName(protokollElterngespraechFilePath));
         else
-            LoggingService.LogMessage(
+            LogMessage(
                 $"File 'Protokoll-Elterngespraech.pdf' not found at {protokollElterngespraechFilePath}.",
                 LogLevel.Warning);
     }
@@ -330,7 +329,7 @@ public partial class MainWindow
     {
         if (_fileManager == null)
         {
-            LoggingService.ShowMessage("Der Dateimanager ist nicht initialisiert.", MessageType.Error);
+            ShowMessage("Der Dateimanager ist nicht initialisiert.", MessageType.Error);
             return;
         }
 
@@ -369,7 +368,7 @@ public partial class MainWindow
 
                 if (HomeFolder == null)
                 {
-                    LoggingService.ShowMessage("Das Hauptverzeichnis ist nicht festgelegt.", MessageType.Error);
+                    ShowMessage("Das Hauptverzeichnis ist nicht festgelegt.", MessageType.Error);
                     return;
                 }
 
@@ -381,7 +380,7 @@ public partial class MainWindow
         }
         else
         {
-            LoggingService.ShowMessage("Fehler beim Extrahieren der Monate aus Excel.", MessageType.Error);
+            ShowMessage("Fehler beim Extrahieren der Monate aus Excel.", MessageType.Error);
             return;
         }
 
@@ -403,7 +402,7 @@ public partial class MainWindow
 
         if (string.IsNullOrEmpty(parsedBirthDate))
         {
-            LoggingService.LogAndShowMessage("Geburtsdatum konnte nicht extrahiert werden.",
+            LogAndShowMessage("Geburtsdatum konnte nicht extrahiert werden.",
                 "Error extracting birth date.");
             return;
         }
@@ -412,7 +411,7 @@ public partial class MainWindow
             renamedProtokollElterngespraechPath, renamedVorschuleEntwicklungsberichtPath, kidName, months, group,
             parsedBirthDate, genderValue);
         if (OperationState.OperationsSuccessful)
-            LoggingService.ShowMessage("Dateien erfolgreich kopiert und umbenannt.");
+            ShowMessage("Dateien erfolgreich kopiert und umbenannt.");
     }
 
     private bool IsHomeFolderSelected()
@@ -433,14 +432,14 @@ public partial class MainWindow
 
         if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(" "))
         {
-            LoggingService.ShowMessage("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.",
+            ShowMessage("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.",
                 MessageType.Error);
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(selectedGroup) && !string.IsNullOrWhiteSpace(selectedReportMonth) &&
             !string.IsNullOrWhiteSpace(selectedReportYear)) return true;
-        LoggingService.ShowMessage("Bitte füllen Sie alle geforderten Felder aus.", MessageType.Error);
+        ShowMessage("Bitte füllen Sie alle geforderten Felder aus.", MessageType.Error);
         return false;
     }
 
@@ -450,7 +449,7 @@ public partial class MainWindow
 
         if (string.IsNullOrEmpty(HomeFolder))
         {
-            var result = LoggingService.ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
+            var result = ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
                 "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
 
             if (result == MessageBoxResult.Yes)
@@ -479,13 +478,13 @@ public partial class MainWindow
                 break;
             }
             case > 0:
-                LoggingService.LogMessage(
+                LogMessage(
                     $"e.AddedItems[0] type: {e.AddedItems[0]?.GetType().Name ?? "null"}, value: {e.AddedItems[0]}",
                     LogLevel.Warning);
-                LoggingService.LogMessage("Selected group is empty or not a valid ComboBoxItem.", LogLevel.Warning);
+                LogMessage("Selected group is empty or not a valid ComboBoxItem.", LogLevel.Warning);
                 break;
             default:
-                LoggingService.LogMessage("No group selected.", LogLevel.Warning);
+                LogMessage("No group selected.", LogLevel.Warning);
                 break;
         }
     }
@@ -506,9 +505,9 @@ public partial class MainWindow
             {
                 HomeFolderPath = HomeFolder
             };
-            settings.SaveSettings(settings);
+            AppSettings.SaveSettings(settings);
 
-            LoggingService.ShowMessage($"Ausgewähltes Hauptverzeichnis: {HomeFolder}");
+            ShowMessage($"Ausgewähltes Hauptverzeichnis: {HomeFolder}");
         }
     }
 

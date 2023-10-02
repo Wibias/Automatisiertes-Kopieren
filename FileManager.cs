@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using static Automatisiertes_Kopieren.LoggingService;
 
 namespace Automatisiertes_Kopieren;
 
-public class FileManager
+public partial class FileManager
 {
-    private static readonly LoggingService LoggingService = new();
     private readonly string _homeFolder;
 
     public FileManager(string homeFolder)
@@ -36,7 +36,7 @@ public class FileManager
         {
             if (File.Exists(destFile))
             {
-                var result = LoggingService.ShowMessage("Die Datei existiert bereits. Möchtest du diese ersetzen?",
+                var result = ShowMessage("Die Datei existiert bereits. Möchtest du diese ersetzen?",
                     MessageType.Info,
                     "Confirm Replace",
                     MessageBoxButton.YesNo);
@@ -49,7 +49,7 @@ public class FileManager
         }
         catch (Exception ex)
         {
-            LoggingService.LogAndShowMessage($"Fehler beim Umbenennen der Datei: {ex.Message}",
+            LogAndShowMessage($"Fehler beim Umbenennen der Datei: {ex.Message}",
                 "Fehler beim Umbenennen der Datei", LogLevel.Error, MessageType.Error);
         }
     }
@@ -71,9 +71,9 @@ public class FileManager
         reportMonth = StringUtilities.ConvertToTitleCase(reportMonth);
         reportMonth = StringUtilities.ConvertSpecialCharacters(reportMonth, StringUtilities.ConversionType.Umlaute,
             StringUtilities.ConversionType.Underscore);
-        if (!int.TryParse(Regex.Match(protokollNumber, @"\d+").Value, out _))
+        if (!int.TryParse(ProtokollNumberRegex().Match(protokollNumber).Value, out _))
         {
-            LoggingService.LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}",
+            LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}",
                 LogLevel.Error);
             return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty,
                 renamedAllgemeinEntwicklungsberichtPath ?? string.Empty,
@@ -116,7 +116,7 @@ public class FileManager
                 renamedProtokollbogenPath = Path.Combine(targetFolderPath, newFileName);
             }
 
-            if (fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase))
+            if (!fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase)) continue;
             {
                 var newFileName = $"{kidName}_Protokoll_Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
                 SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
@@ -130,7 +130,8 @@ public class FileManager
             renamedVorschuleEntwicklungsberichtPath ?? string.Empty);
     }
 
-    public void CopyFilesFromSourceToTarget(string? sourceFile, string targetFolderPath, string protokollbogenFileName)
+    public static void CopyFilesFromSourceToTarget(string? sourceFile, string targetFolderPath,
+        string protokollbogenFileName)
     {
         if (!Directory.Exists(targetFolderPath)) Directory.CreateDirectory(targetFolderPath);
 
@@ -141,12 +142,12 @@ public class FileManager
             }
             catch (Exception ex)
             {
-                LoggingService.LogMessage(
+                LogMessage(
                     $"Error copying file. Source: {sourceFile}, Destination: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Error: {ex.Message}",
                     LogLevel.Error);
             }
         else
-            LoggingService.LogMessage($"File {protokollbogenFileName} not found in source folder.", LogLevel.Warning);
+            LogMessage($"File {protokollbogenFileName} not found in source folder.", LogLevel.Warning);
     }
 
     private static void SafeCopyFile(string sourceFile, string destFile)
@@ -155,7 +156,7 @@ public class FileManager
         {
             if (File.Exists(destFile))
             {
-                var result = LoggingService.ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
+                var result = ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
                     "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
 
                 if (result == MessageBoxResult.Yes)
@@ -163,12 +164,12 @@ public class FileManager
                     var backupFilename =
                         $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
                     File.Move(destFile, backupFilename);
-                    LoggingService.ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}",
+                    ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}",
                         MessageType.Info, "Info");
                 }
                 else
                 {
-                    LoggingService.ShowMessage("Die Datei wurde nicht kopiert.", MessageType.Info, "Info");
+                    ShowMessage("Die Datei wurde nicht kopiert.", MessageType.Info, "Info");
                     return;
                 }
             }
@@ -177,10 +178,13 @@ public class FileManager
         }
         catch (Exception ex)
         {
-            LoggingService.LogAndShowMessage($"Fehler beim Kopieren der Datei: {ex.Message}",
+            LogAndShowMessage($"Fehler beim Kopieren der Datei: {ex.Message}",
                 "Fehler beim Kopieren der Datei", LogLevel.Error, MessageType.Error);
         }
     }
+
+    [GeneratedRegex("\\d+")]
+    private static partial Regex ProtokollNumberRegex();
 
     public static class StringUtilities
     {
@@ -201,18 +205,12 @@ public class FileManager
 
         public static string ConvertSpecialCharacters(string input, params ConversionType[] types)
         {
-            foreach (var type in types)
-                switch (type)
-                {
-                    case ConversionType.Umlaute:
-                        input = input.Replace("ä", "ae").Replace("ö", "oe");
-                        break;
-                    case ConversionType.Underscore:
-                        input = input.Replace(" ", "_");
-                        break;
-                }
-
-            return input;
+            return types.Aggregate(input, (current, type) => type switch
+            {
+                ConversionType.Umlaute => current.Replace("ä", "ae").Replace("ö", "oe"),
+                ConversionType.Underscore => current.Replace(" ", "_"),
+                _ => current
+            });
         }
     }
 }

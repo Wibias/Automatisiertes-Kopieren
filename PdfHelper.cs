@@ -16,8 +16,6 @@ public static class PdfHelper
         VorschuleEntwicklungsbericht
     }
 
-    private static readonly LoggingService LoggingService = new();
-
     public static void FillPdf(string pdfPath, string kidName, double monthsValue, string group, PdfType pdfType,
         string parsedBirthDate, string? genderValue)
     {
@@ -25,10 +23,8 @@ public static class PdfHelper
         {
             var pdfDoc = new PdfDocument(new PdfReader(pdfPath), new PdfWriter(pdfPath + ".temp"));
 
-            var form = PdfAcroForm.GetAcroForm(pdfDoc, true);
-
-            if (form == null) throw new Exception("The PDF does not contain any form fields.");
-
+            var form = PdfAcroForm.GetAcroForm(pdfDoc, true) ??
+                       throw new Exception("The PDF does not contain any form fields.");
             switch (pdfType)
             {
                 case PdfType.Protokollbogen:
@@ -68,13 +64,15 @@ public static class PdfHelper
                     form.GetField("Datum").SetValue(DateTime.Now.ToString("dd.MM.yyyy"));
                     form.GetField("Gruppe").SetValue(group);
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(pdfType), pdfType, null);
             }
 
             pdfDoc.Close();
         }
         catch (Exception ex)
         {
-            LoggingService.LogMessage(
+            LogMessage(
                 $"Error encountered in FillPdf. Message: {ex.Message}. StackTrace: {ex.StackTrace}", LogLevel.Error);
         }
 
@@ -85,7 +83,7 @@ public static class PdfHelper
         }
         catch (Exception ex)
         {
-            LoggingService.LogMessage(
+            LogMessage(
                 $"Error encountered while handling file operations. Message: {ex.Message}. StackTrace: {ex.StackTrace}",
                 LogLevel.Error);
         }
