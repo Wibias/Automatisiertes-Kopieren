@@ -14,7 +14,7 @@ namespace Automatisiertes_Kopieren;
 
 public partial class MainWindow
 {
-    private readonly AutoCompleteHelper _autoComplete;
+    private readonly AutoCompleteHelper _autoCompleteHelper;
     private readonly ExcelHelper _excelHelper;
     private FileManager? _fileManager;
 
@@ -24,7 +24,7 @@ public partial class MainWindow
     public MainWindow()
     {
         InitializeLogger();
-        _autoComplete = new AutoCompleteHelper(this);
+        _autoCompleteHelper = new AutoCompleteHelper(this);
         InitializeComponent();
         var settings = AppSettings.LoadSettings();
         if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
@@ -54,7 +54,7 @@ public partial class MainWindow
         {
             _homeFolder = value;
             if (GroupDropdown.SelectedIndex != 0 || string.IsNullOrEmpty(_homeFolder)) return;
-            var defaultKidNames = _autoComplete.GetKidNamesForGroup("Bären");
+            var defaultKidNames = _autoCompleteHelper.GetKidNamesForGroup("Bären");
             KidNameComboBox.ItemsSource = defaultKidNames;
         }
     }
@@ -84,25 +84,24 @@ public partial class MainWindow
 
     private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
     {
-        _autoComplete.KidNameComboBox_Loaded();
+        _autoCompleteHelper.KidNameComboBox_Loaded();
     }
 
     private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
     {
-        _autoComplete.OnGroupSelected(e);
+        _autoCompleteHelper.OnGroupSelected(e);
     }
 
     private void KidNameComboBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
     {
-        _autoComplete.OnKidNameComboBoxPreviewTextInput(e);
+        _autoCompleteHelper.OnKidNameComboBoxPreviewTextInput(e);
     }
 
     private void KidNameComboBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (sender is null) throw new ArgumentNullException(nameof(sender));
-
         var argumentOutOfRangeException = new ArgumentOutOfRangeException();
-        _autoComplete.OnKidNameComboBoxPreviewKeyDown(e, argumentOutOfRangeException);
+        _autoCompleteHelper.OnKidNameComboBoxPreviewKeyDown(e, argumentOutOfRangeException);
     }
 
     private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
@@ -244,13 +243,9 @@ public partial class MainWindow
 
     private bool ValidateHomeFolder()
     {
-        if (HomeFolder == null)
-        {
-            ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
-            return false;
-        }
-
-        return true;
+        if (HomeFolder != null) return true;
+        ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+        return false;
     }
 
     private string? ValidateKidName()
