@@ -75,7 +75,6 @@ namespace Automatisiertes_Kopieren
             {
                 _loggingService.LogMessage($"Error encountered in FillPdf. Message: {ex.Message}. StackTrace: {ex.StackTrace}", LogLevel.Error);
             }
-
             try
             {
                 File.Delete(pdfPath);
