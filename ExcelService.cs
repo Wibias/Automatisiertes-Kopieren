@@ -1,10 +1,9 @@
-﻿using ClosedXML.Excel;
-using OfficeOpenXml;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
-using System.Windows;
 using System.Windows.Controls;
+using ClosedXML.Excel;
+using OfficeOpenXml;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
 using static Automatisiertes_Kopieren.LoggingService;
 
@@ -12,20 +11,24 @@ namespace Automatisiertes_Kopieren;
 
 public class ExcelService
 {
-    private readonly string _homeFolder;
     private static readonly LoggingService LoggingService = new();
+    private readonly string _homeFolder;
 
     public ExcelService(string homeFolder)
     {
         _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
     }
+
     private string? ConvertedGroupName { get; set; }
     private string? ShortGroupName { get; set; }
-    public (double? months, string? error, string? parsedBirthDate, string? gender) ExtractFromExcel(string group, string kidLastName, string kidFirstName)
+
+    public (double? months, string? error, string? parsedBirthDate, string? gender) ExtractFromExcel(string group,
+        string kidLastName, string kidFirstName)
     {
         ConvertedGroupName = ConvertSpecialCharacters(group, ConversionType.Umlaute);
         ShortGroupName = ConvertedGroupName.Split(' ')[0];
-        var filePath = $@"{_homeFolder}\Entwicklungsberichte\{ConvertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{ShortGroupName}.xlsm";
+        var filePath =
+            $@"{_homeFolder}\Entwicklungsberichte\{ConvertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{ShortGroupName}.xlsm";
         string? parsedBirthDate = null;
         var genderValue = string.Empty;
         double? extractedMonths = null;
@@ -65,10 +68,9 @@ public class ExcelService
 
                 var monthsValueRaw = mainWorksheet.Cell(row, 6).Value.ToString();
 
-                if (monthsValueRaw != null && double.TryParse(monthsValueRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsedValue))
-                {
+                if (monthsValueRaw != null && double.TryParse(monthsValueRaw.Replace(",", "."), NumberStyles.Any,
+                        CultureInfo.InvariantCulture, out var parsedValue))
                     extractedMonths = Math.Round(parsedValue, 2);
-                }
             }
 
             var genderWorksheet = workbook.Worksheet("NAMES-BIRTHDAYS-FILL-IN");
@@ -109,16 +111,17 @@ public class ExcelService
         }
         catch (Exception ex)
         {
-            LoggingService.LogAndShowMessage($"Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten: {ex.Message}",
+            LoggingService.LogAndShowMessage(
+                $"Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten: {ex.Message}",
                 "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.");
             return (null, "UnexpectedError", parsedBirthDate, genderValue);
         }
 
         if (extractedMonths.HasValue) return (extractedMonths, null, parsedBirthDate, genderValue);
-        LoggingService.LogAndShowMessage($"Es konnte kein gültiger Monatswert für {kidFirstName} {kidLastName} extrahiert werden.",
+        LoggingService.LogAndShowMessage(
+            $"Es konnte kein gültiger Monatswert für {kidFirstName} {kidLastName} extrahiert werden.",
             "Es konnte kein gültiger Monatswert extrahiert werden. Bitte überprüfen Sie die Daten.");
         return (null, "ExtractionError", parsedBirthDate, genderValue);
-
     }
 
     private static void UpdateDateInWorksheet(string filePath, string worksheetName, string cellAddress, DateTime date)
@@ -138,10 +141,11 @@ public class ExcelService
         }
     }
 
-    public void SelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
+    public void SelectHeutigesDatumEntwicklungsBericht(object sender)
     {
         if (sender is not CheckBox { IsChecked: true }) return;
-        var filePath = $@"{_homeFolder}\Entwicklungsberichte\{ConvertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{ShortGroupName}.xlsm";
+        var filePath =
+            $@"{_homeFolder}\Entwicklungsberichte\{ConvertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{ShortGroupName}.xlsm";
 
         try
         {

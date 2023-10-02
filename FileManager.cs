@@ -5,206 +5,214 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using static Automatisiertes_Kopieren.LoggingService;
 
-namespace Automatisiertes_Kopieren
+namespace Automatisiertes_Kopieren;
+
+public class FileManager
 {
-    public class FileManager
+    private static readonly LoggingService LoggingService = new();
+    private readonly string _homeFolder;
+
+    public FileManager(string homeFolder)
     {
-        private readonly string _homeFolder;
-        private readonly static LoggingService _loggingService = new LoggingService();
+        _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
+    }
 
-        public FileManager(string homeFolder)
+    public string GetTargetPath(string group, string kidName, string reportYear, string reportMonth)
+    {
+        group = StringUtilities.ConvertToTitleCase(group);
+        group = StringUtilities.ConvertSpecialCharacters(group, StringUtilities.ConversionType.Umlaute);
+
+        kidName = StringUtilities.ConvertToTitleCase(kidName);
+
+        if (string.IsNullOrEmpty(_homeFolder))
+            throw new InvalidOperationException("Das Hauptverzeichnis ist nicht festgelegt.");
+        return
+            $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\Aktuell\{kidName}\{reportYear}\{reportMonth}";
+    }
+
+    private static void SafeRenameFile(string sourceFile, string destFile)
+    {
+        try
         {
-            _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
-        }
-
-        public string GetTargetPath(string group, string kidName, string reportYear, string reportMonth)
-        {
-            group = StringUtilities.ConvertToTitleCase(group);
-            group = StringUtilities.ConvertSpecialCharacters(group, StringUtilities.ConversionType.Umlaute);
-
-            kidName = StringUtilities.ConvertToTitleCase(kidName);
-
-            if (string.IsNullOrEmpty(_homeFolder))
+            if (File.Exists(destFile))
             {
-                throw new InvalidOperationException("Das Hauptverzeichnis ist nicht festgelegt.");
+                var result = LoggingService.ShowMessage("Die Datei existiert bereits. Möchtest du diese ersetzen?",
+                    MessageType.Info,
+                    "Confirm Replace",
+                    MessageBoxButton.YesNo);
+
+                if (result == MessageBoxResult.No) return;
+                File.Delete(destFile);
             }
-            return $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\Aktuell\{kidName}\{reportYear}\{reportMonth}";
+
+            File.Move(sourceFile, destFile);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.LogAndShowMessage($"Fehler beim Umbenennen der Datei: {ex.Message}",
+                "Fehler beim Umbenennen der Datei", LogLevel.Error, MessageType.Error);
+        }
+    }
+
+
+    public static Tuple<string, string, string, string> RenameFilesInTargetDirectory(string targetFolderPath,
+        string kidName,
+        string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschuleChecked,
+        bool isProtokollbogenChecked, string protokollNumber)
+    {
+        string? renamedProtokollbogenPath = null;
+        string? renamedAllgemeinEntwicklungsberichtPath = null;
+        string? renamedProtokollElterngespraechPath = null;
+        string? renamedVorschuleEntwicklungsberichtPath = null;
+        kidName = StringUtilities.ConvertToTitleCase(kidName);
+        kidName = StringUtilities.ConvertSpecialCharacters(kidName, StringUtilities.ConversionType.Umlaute,
+            StringUtilities.ConversionType.Underscore);
+
+        reportMonth = StringUtilities.ConvertToTitleCase(reportMonth);
+        reportMonth = StringUtilities.ConvertSpecialCharacters(reportMonth, StringUtilities.ConversionType.Umlaute,
+            StringUtilities.ConversionType.Underscore);
+        if (!int.TryParse(Regex.Match(protokollNumber, @"\d+").Value, out _))
+        {
+            LoggingService.LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}",
+                LogLevel.Error);
+            return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty,
+                renamedAllgemeinEntwicklungsberichtPath ?? string.Empty,
+                renamedProtokollElterngespraechPath ?? string.Empty,
+                renamedVorschuleEntwicklungsberichtPath ?? string.Empty);
         }
 
-        public bool SafeRenameFile(string sourceFile, string destFile)
+
+        var files = Directory.GetFiles(targetFolderPath);
+
+        foreach (var file in files)
         {
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            var fileExtension = Path.GetExtension(file);
+
+            if (fileName.Equals("Allgemeiner-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) &&
+                isAllgemeinerChecked)
+            {
+                var newFileName =
+                    $"{kidName}_Allgemeiner_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
+                SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                renamedAllgemeinEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
+            }
+
+            if (fileName.Equals("Vorschule-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) &&
+                isVorschuleChecked)
+            {
+                var newFileName = $"{kidName}_Vorschule_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
+                SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                renamedVorschuleEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
+            }
+
+
+            if (fileName.StartsWith("Kind_Protokollbogen_", StringComparison.OrdinalIgnoreCase) &&
+                isProtokollbogenChecked)
+            {
+                var newFileName =
+                    $"{kidName}_{protokollNumber}_Protokollbogen_{reportMonth}_{reportYear}{fileExtension}";
+                SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                renamedProtokollbogenPath = Path.Combine(targetFolderPath, newFileName);
+            }
+
+            if (fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase))
+            {
+                var newFileName = $"{kidName}_Protokoll_Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
+                SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                renamedProtokollElterngespraechPath = Path.Combine(targetFolderPath, newFileName);
+            }
+        }
+
+        return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty,
+            renamedAllgemeinEntwicklungsberichtPath ?? string.Empty,
+            renamedProtokollElterngespraechPath ?? string.Empty,
+            renamedVorschuleEntwicklungsberichtPath ?? string.Empty);
+    }
+
+    public void CopyFilesFromSourceToTarget(string? sourceFile, string targetFolderPath, string protokollbogenFileName)
+    {
+        if (!Directory.Exists(targetFolderPath)) Directory.CreateDirectory(targetFolderPath);
+
+        if (sourceFile != null && File.Exists(sourceFile))
             try
             {
-                if (File.Exists(destFile))
-                {
-                    MessageBoxResult result = _loggingService.ShowMessage("Die Datei existiert bereits. Möchtest du diese ersetzen?",
-                        LoggingService.MessageType.Info,
-                        "Confirm Replace",
-                        MessageBoxButton.YesNo);
-
-                    if (result == MessageBoxResult.No)
-                    {
-                        return false; // User chose not to replace the file.
-                    }
-                    File.Delete(destFile);
-                }
-
-                File.Move(sourceFile, destFile);
-                return true;
+                SafeCopyFile(sourceFile, Path.Combine(targetFolderPath, protokollbogenFileName));
             }
             catch (Exception ex)
             {
-                _loggingService.LogAndShowMessage($"Fehler beim Umbenennen der Datei: {ex.Message}", "Fehler beim Umbenennen der Datei", LoggingService.LogLevel.Error, LoggingService.MessageType.Error);
-                return false;
+                LoggingService.LogMessage(
+                    $"Error copying file. Source: {sourceFile}, Destination: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Error: {ex.Message}",
+                    LogLevel.Error);
             }
-        }
+        else
+            LoggingService.LogMessage($"File {protokollbogenFileName} not found in source folder.", LogLevel.Warning);
+    }
 
-
-        public Tuple<string, string, string, string> RenameFilesInTargetDirectory(string targetFolderPath, string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschulChecked, bool isProtokollbogenChecked, string protokollNumber)
+    private static void SafeCopyFile(string sourceFile, string destFile)
+    {
+        try
         {
-            string? renamedProtokollbogenPath = null;
-            string? renamedAllgemeinEntwicklungsberichtPath = null;
-            string? renamedProtokollElterngespraechPath = null;
-            string? renamedVorschulEntwicklungsberichtPath = null;
-            kidName = StringUtilities.ConvertToTitleCase(kidName);
-            kidName = StringUtilities.ConvertSpecialCharacters(kidName, StringUtilities.ConversionType.Umlaute, StringUtilities.ConversionType.Underscore);
-
-            reportMonth = StringUtilities.ConvertToTitleCase(reportMonth);
-            reportMonth = StringUtilities.ConvertSpecialCharacters(reportMonth, StringUtilities.ConversionType.Umlaute, StringUtilities.ConversionType.Underscore);
-            int numericProtokollNumber;
-            if (!int.TryParse(Regex.Match(protokollNumber, @"\d+").Value, out numericProtokollNumber))
+            if (File.Exists(destFile))
             {
-                _loggingService.LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}", LogLevel.Error);
-                return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty, renamedAllgemeinEntwicklungsberichtPath ?? string.Empty, renamedProtokollElterngespraechPath ?? string.Empty, renamedVorschulEntwicklungsberichtPath ?? string.Empty);
+                var result = LoggingService.ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
+                    "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    var backupFilename =
+                        $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
+                    File.Move(destFile, backupFilename);
+                    LoggingService.ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}",
+                        MessageType.Info, "Info");
+                }
+                else
+                {
+                    LoggingService.ShowMessage("Die Datei wurde nicht kopiert.", MessageType.Info, "Info");
+                    return;
+                }
             }
 
-
-            string[] files = Directory.GetFiles(targetFolderPath);
-
-            foreach (string file in files)
-            {
-                string fileName = Path.GetFileNameWithoutExtension(file);
-                string fileExtension = Path.GetExtension(file);
-
-                if (fileName.Equals("Allgemeiner-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isAllgemeinerChecked)
-                {
-                    string newFileName = $"{kidName}_Allgemeiner_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
-                    SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
-                    renamedAllgemeinEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
-                }
-
-                if (fileName.Equals("Vorschul-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) && isVorschulChecked)
-                {
-                    string newFileName = $"{kidName}_Vorschul_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
-                    SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
-                    renamedVorschulEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
-                }
-
-
-                if (fileName.StartsWith("Kind_Protokollbogen_", StringComparison.OrdinalIgnoreCase) && isProtokollbogenChecked)
-                {
-                    string newFileName = $"{kidName}_{protokollNumber}_Protokollbogen_{reportMonth}_{reportYear}{fileExtension}";
-                    SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
-                    renamedProtokollbogenPath = Path.Combine(targetFolderPath, newFileName);
-                }
-
-                if (fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase))
-                {
-                    string newFileName = $"{kidName}_Protokoll_Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
-                    SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
-                    renamedProtokollElterngespraechPath = Path.Combine(targetFolderPath, newFileName);
-                }
-            }
-            return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty, renamedAllgemeinEntwicklungsberichtPath ?? string.Empty, renamedProtokollElterngespraechPath ?? string.Empty, renamedVorschulEntwicklungsberichtPath ?? string.Empty);
+            File.Copy(sourceFile, destFile, true);
         }
-
-        public static class StringUtilities
+        catch (Exception ex)
         {
-            public static string ConvertToTitleCase(string inputString)
-            {
-                if (string.IsNullOrWhiteSpace(inputString))
-                    return string.Empty;
-
-                TextInfo textInfo = new CultureInfo("de-DE", false).TextInfo;
-                return textInfo.ToTitleCase(inputString.ToLower());
-            }
-
-            public static string ConvertSpecialCharacters(string input, params ConversionType[] types)
-            {
-                foreach (var type in types)
-                {
-                    switch (type)
-                    {
-                        case ConversionType.Umlaute:
-                            input = input.Replace("ä", "ae").Replace("ö", "oe");
-                            break;
-                        case ConversionType.Underscore:
-                            input = input.Replace(" ", "_");
-                            break;
-                    }
-                }
-                return input;
-            }
-
-            public enum ConversionType
-            {
-                Umlaute,
-                Underscore
-            }
+            LoggingService.LogAndShowMessage($"Fehler beim Kopieren der Datei: {ex.Message}",
+                "Fehler beim Kopieren der Datei", LogLevel.Error, MessageType.Error);
         }
+    }
 
-        public void CopyFilesFromSourceToTarget(string? sourceFile, string targetFolderPath, string protokollbogenFileName)
+    public static class StringUtilities
+    {
+        public enum ConversionType
         {
-            if (!Directory.Exists(targetFolderPath))
-            {
-                Directory.CreateDirectory(targetFolderPath);
-            }
-
-            if (sourceFile != null && File.Exists(sourceFile))
-            {
-                try
-                {
-                    SafeCopyFile(sourceFile, Path.Combine(targetFolderPath, protokollbogenFileName));
-                }
-                catch (Exception ex)
-                {
-                    _loggingService.LogMessage($"Error copying file. Source: {sourceFile}, Destination: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Error: {ex.Message}", LoggingService.LogLevel.Error);
-                }
-            }
-            else
-            {
-                _loggingService.LogMessage($"File {protokollbogenFileName} not found in source folder.", LogLevel.Warning);
-            }
+            Umlaute,
+            Underscore
         }
 
-        public void SafeCopyFile(string sourceFile, string destFile)
+        public static string ConvertToTitleCase(string inputString)
         {
-            try
-            {
-                if (File.Exists(destFile))
-                {
-                    MessageBoxResult result = _loggingService.ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info, "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
+            if (string.IsNullOrWhiteSpace(inputString))
+                return string.Empty;
 
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        string backupFilename = $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
-                        File.Move(destFile, backupFilename);
-                        _loggingService.ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}", LoggingService.MessageType.Info, "Info");
-                    }
-                    else
-                    {
-                        _loggingService.ShowMessage("Die Datei wurde nicht kopiert.", LoggingService.MessageType.Info, "Info");
-                        return;
-                    }
-                }
-
-                File.Copy(sourceFile, destFile, overwrite: true);
-            }
-            catch (Exception ex)
-            {
-                _loggingService.LogAndShowMessage($"Fehler beim Kopieren der Datei: {ex.Message}", "Fehler beim Kopieren der Datei", LoggingService.LogLevel.Error, LoggingService.MessageType.Error);
-            }
+            var textInfo = new CultureInfo("de-DE", false).TextInfo;
+            return textInfo.ToTitleCase(inputString.ToLower());
         }
 
+        public static string ConvertSpecialCharacters(string input, params ConversionType[] types)
+        {
+            foreach (var type in types)
+                switch (type)
+                {
+                    case ConversionType.Umlaute:
+                        input = input.Replace("ä", "ae").Replace("ö", "oe");
+                        break;
+                    case ConversionType.Underscore:
+                        input = input.Replace(" ", "_");
+                        break;
+                }
+
+            return input;
+        }
     }
 }
