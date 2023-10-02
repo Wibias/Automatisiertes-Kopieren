@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using static System.DateTime;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
 using static Automatisiertes_Kopieren.LoggingService;
 
@@ -61,7 +60,7 @@ public class ExcelService
                 }
 
                 var birthDate = mainWorksheet.Cell(row, 5).Value.ToString();
-                var parseBirthDate = TryParse(birthDate, out var parsedDate);
+                _ = DateTime.TryParse(birthDate, out var parsedDate);
                 parsedBirthDate = parsedDate.ToString("dd.MM.yyyy");
 
                 var monthsValueRaw = mainWorksheet.Cell(row, 6).Value.ToString();
@@ -128,19 +127,15 @@ public class ExcelService
         using var package = new ExcelPackage(fileInfo);
         var worksheet = package.Workbook.Worksheets[worksheetName];
 
-        if (worksheet == null)
+        if (worksheet != null)
+        {
+            worksheet.Cells[cellAddress].Value = date;
+            package.Save();
+        }
+        else
         {
             throw new Exception($"The worksheet '{worksheetName}' was not found in the file {filePath}.");
         }
-
-        worksheet.Cells[cellAddress].Value = date;
-        package.Save();
-    }
-    public string GetExcelFilePath(string groupName)
-    {
-        var convertedGroupName = ConvertSpecialCharacters(groupName, ConversionType.Umlaute);
-        var shortGroupName = convertedGroupName.Split(' ')[0];
-        return $@"{_homeFolder}\Entwicklungsberichte\{convertedGroupName} Entwicklungsberichte\Monatsrechner-Kinder-Zielsetzung-{shortGroupName}.xlsm";
     }
 
     public void SelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
@@ -150,7 +145,7 @@ public class ExcelService
 
         try
         {
-            UpdateDateInWorksheet(filePath, "Monatsrechner", "D2", Today);
+            UpdateDateInWorksheet(filePath, "Monatsrechner", "D2", DateTime.Today);
         }
         catch (Exception ex)
         {
