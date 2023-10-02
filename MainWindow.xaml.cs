@@ -47,8 +47,8 @@ public partial class MainWindow
 
         _excelService = new ExcelService(HomeFolder);
 
-        protokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
-        protokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
+        ProtokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
+        ProtokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
     }
 
     public string? HomeFolder
@@ -57,9 +57,9 @@ public partial class MainWindow
         private set
         {
             _homeFolder = value;
-            if (groupDropdown.SelectedIndex != 0 || string.IsNullOrEmpty(_homeFolder)) return;
+            if (GroupDropdown.SelectedIndex != 0 || string.IsNullOrEmpty(_homeFolder)) return;
             var defaultKidNames = _autoComplete.GetKidNamesForGroup("Bären");
-            kidNameComboBox.ItemsSource = defaultKidNames;
+            KidNameComboBox.ItemsSource = defaultKidNames;
         }
     }
 
@@ -93,7 +93,10 @@ public partial class MainWindow
 
     private void KidNameComboBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        _autoComplete.OnKidNameComboBoxPreviewKeyDown(e, new ArgumentOutOfRangeException());
+        if (sender is null) throw new ArgumentNullException(nameof(sender));
+
+        var argumentOutOfRangeException = new ArgumentOutOfRangeException();
+        _autoComplete.OnKidNameComboBoxPreviewKeyDown(e, argumentOutOfRangeException);
     }
 
     private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
@@ -119,8 +122,8 @@ public partial class MainWindow
     private void HandleProtokollbogenAutoCheckbox(bool isChecked)
     {
         if (!isChecked) return;
-        var group = groupDropdown.Text;
-        var kidName = kidNameComboBox.Text;
+        var group = GroupDropdown.Text;
+        var kidName = KidNameComboBox.Text;
 
         var nameParts = kidName.Split(' ');
 
@@ -139,25 +142,25 @@ public partial class MainWindow
             {
                 case "HomeFolderNotSet":
                     ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
-                    protokollbogenAutoCheckbox.IsChecked = false;
+                    ProtokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 case "FileNotFound":
                     ShowMessage(
                         "Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.",
                         MessageType.Error);
-                    protokollbogenAutoCheckbox.IsChecked = false;
+                    ProtokollbogenAutoCheckbox.IsChecked = false;
                     return;
             }
 
             if (months.HasValue) return;
             ShowMessage("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.",
                 MessageType.Error);
-            protokollbogenAutoCheckbox.IsChecked = false;
+            ProtokollbogenAutoCheckbox.IsChecked = false;
         }
         else
         {
             ShowMessage("Ungültiger Name. Bitte überprüfen Sie die Daten.", MessageType.Error);
-            protokollbogenAutoCheckbox.IsChecked = false;
+            ProtokollbogenAutoCheckbox.IsChecked = false;
         }
     }
 
@@ -192,15 +195,15 @@ public partial class MainWindow
             return false;
         }
 
-        var kidName = kidNameComboBox.Text;
-        var validatedKidName = ValidationHelper.ValidateKidName(kidName, HomeFolder, groupDropdown.Text);
+        var kidName = KidNameComboBox.Text;
+        var validatedKidName = ValidationHelper.ValidateKidName(kidName, HomeFolder, GroupDropdown.Text);
         if (string.IsNullOrEmpty(validatedKidName))
         {
             ShowMessage("Ungültiger Kinder-Name", MessageType.Error);
             return false;
         }
 
-        var reportYearText = reportYearTextbox.Text;
+        var reportYearText = ReportYearTextbox.Text;
         try
         {
             var parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
@@ -221,20 +224,16 @@ public partial class MainWindow
         return true;
     }
 
-    private string? ExtractProtokollNumberFromData((string directoryPath, string fileName)? protokollbogenData)
+    private static string? ExtractProtokollNumberFromData((string directoryPath, string fileName)? protokollbogenData)
     {
         if (!protokollbogenData.HasValue) return null;
 
         var fileName = protokollbogenData.Value.fileName + ".pdf";
-        var match = Regex.Match(fileName, @"Kind_Protokollbogen_(\d+)_Monate\.pdf");
+        var match = ProtokollbogenFileNameRegex().Match(fileName);
 
-        if (!match.Success)
-        {
-            ShowMessage("Fehler beim Extrahieren der Protokollnummer.", MessageType.Error);
-            return null;
-        }
-
-        return match.Groups[1].Value + "_Monate";
+        if (match.Success) return match.Groups[1].Value + "_Monate";
+        ShowMessage("Fehler beim Extrahieren der Protokollnummer.", MessageType.Error);
+        return null;
     }
 
     private bool ValidateHomeFolder()
@@ -250,14 +249,14 @@ public partial class MainWindow
 
     private string? ValidateKidName()
     {
-        var validatedKidName = ValidationHelper.ValidateKidName(kidNameComboBox.Text, HomeFolder!, groupDropdown.Text);
+        var validatedKidName = ValidationHelper.ValidateKidName(KidNameComboBox.Text, HomeFolder!, GroupDropdown.Text);
         if (validatedKidName == null) ShowMessage("Ungültiger Kinder-Name.", MessageType.Error);
         return validatedKidName;
     }
 
     private int? ValidateReportYear()
     {
-        var reportYearNullable = ValidationHelper.ValidateReportYearFromTextbox(reportYearTextbox.Text);
+        var reportYearNullable = ValidationHelper.ValidateReportYearFromTextbox(ReportYearTextbox.Text);
         if (!reportYearNullable.HasValue) ShowMessage("Ungültiges Jahr.", MessageType.Error);
         return reportYearNullable;
     }
@@ -291,14 +290,14 @@ public partial class MainWindow
         if (protokollbogenData.HasValue && !string.IsNullOrEmpty(sourceFolderPath) &&
             !string.IsNullOrEmpty(protokollbogenData.Value.fileName))
             if (isProtokollbogenChecked)
-                _fileManager.CopyFilesFromSourceToTarget(
+                FileManager.CopyFilesFromSourceToTarget(
                     Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName + ".pdf"), targetFolderPath,
                     protokollbogenData.Value.fileName + ".pdf");
 
         var allgemeinerFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
 
         if (isAllgemeinerChecked && File.Exists(allgemeinerFilePath))
-            _fileManager.CopyFilesFromSourceToTarget(allgemeinerFilePath, targetFolderPath,
+            FileManager.CopyFilesFromSourceToTarget(allgemeinerFilePath, targetFolderPath,
                 Path.GetFileName(allgemeinerFilePath));
         else if (!File.Exists(allgemeinerFilePath))
             LogMessage(
@@ -307,7 +306,7 @@ public partial class MainWindow
         var vorschuleFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschule-Entwicklungsbericht.pdf");
 
         if (isVorschuleChecked && File.Exists(vorschuleFilePath))
-            _fileManager.CopyFilesFromSourceToTarget(vorschuleFilePath, targetFolderPath,
+            FileManager.CopyFilesFromSourceToTarget(vorschuleFilePath, targetFolderPath,
                 Path.GetFileName(vorschuleFilePath));
         else if (!File.Exists(vorschuleFilePath))
             LogMessage($"File 'Vorschule-Entwicklungsbericht.pdf' not found at {vorschuleFilePath}.",
@@ -317,7 +316,7 @@ public partial class MainWindow
             Path.Combine(homeFolder, "Entwicklungsboegen", "Protokoll-Elterngespraech.pdf");
 
         if (File.Exists(protokollElterngespraechFilePath))
-            _fileManager.CopyFilesFromSourceToTarget(protokollElterngespraechFilePath, targetFolderPath,
+            FileManager.CopyFilesFromSourceToTarget(protokollElterngespraechFilePath, targetFolderPath,
                 Path.GetFileName(protokollElterngespraechFilePath));
         else
             LogMessage(
@@ -337,7 +336,7 @@ public partial class MainWindow
         var sourceFolderPath = string.Empty;
         (string directoryPath, string fileName)? protokollbogenData = null;
 
-        var group = ConvertToTitleCase(groupDropdown.Text);
+        var group = ConvertToTitleCase(GroupDropdown.Text);
 
         if (!ValidateHomeFolder()) return;
 
@@ -345,7 +344,7 @@ public partial class MainWindow
         if (validatedKidName == null) return;
 
         var kidName = ConvertToTitleCase(validatedKidName);
-        var reportMonth = ConvertToTitleCase(reportMonthDropdown.Text);
+        var reportMonth = ConvertToTitleCase(ReportMonthDropdown.Text);
 
         var reportYearNullable = ValidateReportYear();
         if (!reportYearNullable.HasValue) return;
@@ -386,9 +385,9 @@ public partial class MainWindow
 
         var targetFolderPath = _fileManager.GetTargetPath(group, kidName, reportYear.ToString(), reportMonth);
 
-        var isAllgemeinerChecked = allgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
-        var isVorschuleChecked = vorschulentwicklungsberichtCheckbox.IsChecked == true;
-        var isProtokollbogenChecked = protokollbogenAutoCheckbox.IsChecked == true;
+        var isAllgemeinerChecked = AllgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
+        var isVorschuleChecked = VorschulentwicklungsberichtCheckbox.IsChecked == true;
+        var isProtokollbogenChecked = ProtokollbogenAutoCheckbox.IsChecked == true;
 
         CopyRequiredFiles(protokollbogenData, sourceFolderPath, targetFolderPath, HomeFolder!, isAllgemeinerChecked,
             isVorschuleChecked, isProtokollbogenChecked);
@@ -425,12 +424,12 @@ public partial class MainWindow
 
     private bool AreAllRequiredFieldsFilled()
     {
-        var selectedGroup = groupDropdown.Text;
-        var childName = kidNameComboBox.Text;
-        var selectedReportMonth = reportMonthDropdown.Text;
-        var selectedReportYear = reportYearTextbox.Text;
+        var selectedGroup = GroupDropdown.Text;
+        var childName = KidNameComboBox.Text;
+        var selectedReportMonth = ReportMonthDropdown.Text;
+        var selectedReportYear = ReportYearTextbox.Text;
 
-        if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(" "))
+        if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(' '))
         {
             ShowMessage("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.",
                 MessageType.Error);
@@ -443,9 +442,9 @@ public partial class MainWindow
         return false;
     }
 
-    public void OnGroupSelected(object sender, SelectionChangedEventArgs e)
+    private void OnGroupSelected(object sender, SelectionChangedEventArgs e)
     {
-        if (kidNameComboBox == null) return;
+        if (KidNameComboBox == null) return;
 
         if (string.IsNullOrEmpty(HomeFolder))
         {
@@ -474,7 +473,7 @@ public partial class MainWindow
             {
                 _autoComplete.GetKidNamesForGroup(selectedGroup);
                 _allKidNames = _autoComplete.GetKidNamesForGroup(selectedGroup);
-                kidNameComboBox.ItemsSource = _allKidNames;
+                KidNameComboBox.ItemsSource = _allKidNames;
                 break;
             }
             case > 0:
@@ -515,6 +514,9 @@ public partial class MainWindow
     {
         Log.CloseAndFlush();
     }
+
+    [GeneratedRegex(@"Kind_Protokollbogen_(\d+)_Monate\.pdf")]
+    private static partial Regex ProtokollbogenFileNameRegex();
 
     public static class OperationState
     {

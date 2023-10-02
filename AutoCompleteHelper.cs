@@ -20,7 +20,7 @@ public class AutoCompleteHelper
 
     public void OnKidNameComboBoxPreviewTextInput(TextCompositionEventArgs e)
     {
-        if (_mainWindow.kidNameComboBox?.Template.FindName("PART_EditableTextBox", _mainWindow.kidNameComboBox) is not
+        if (_mainWindow.KidNameComboBox?.Template.FindName("PART_EditableTextBox", _mainWindow.KidNameComboBox) is not
             TextBox textBox) return;
         var futureText = textBox.Text.Insert(textBox.CaretIndex, e.Text);
 
@@ -30,15 +30,15 @@ public class AutoCompleteHelper
 
         if (filteredNames.Count == 0)
         {
-            _mainWindow.kidNameComboBox.ItemsSource = _allKidNames;
-            _mainWindow.kidNameComboBox.IsDropDownOpen = false;
+            _mainWindow.KidNameComboBox.ItemsSource = _allKidNames;
+            _mainWindow.KidNameComboBox.IsDropDownOpen = false;
             return;
         }
 
-        _mainWindow.kidNameComboBox.ItemsSource = filteredNames;
-        _mainWindow.kidNameComboBox.Text = futureText;
+        _mainWindow.KidNameComboBox.ItemsSource = filteredNames;
+        _mainWindow.KidNameComboBox.Text = futureText;
         textBox.CaretIndex = futureText.Length;
-        _mainWindow.kidNameComboBox.IsDropDownOpen = true;
+        _mainWindow.KidNameComboBox.IsDropDownOpen = true;
 
         e.Handled = true;
     }
@@ -50,15 +50,15 @@ public class AutoCompleteHelper
             case Key.Down:
             case Key.Up:
             {
-                if (_mainWindow.kidNameComboBox.IsDropDownOpen) e.Handled = false;
+                if (_mainWindow.KidNameComboBox.IsDropDownOpen) e.Handled = false;
                 break;
             }
             case Key.Enter:
             {
-                if (_mainWindow.kidNameComboBox.IsDropDownOpen)
+                if (_mainWindow.KidNameComboBox.IsDropDownOpen)
                 {
-                    _mainWindow.kidNameComboBox.SelectedItem = _mainWindow.kidNameComboBox.Items.CurrentItem;
-                    _mainWindow.kidNameComboBox.IsDropDownOpen = false;
+                    _mainWindow.KidNameComboBox.SelectedItem = _mainWindow.KidNameComboBox.Items.CurrentItem;
+                    _mainWindow.KidNameComboBox.IsDropDownOpen = false;
                 }
 
                 break;
@@ -410,10 +410,10 @@ public class AutoCompleteHelper
 
     public void KidNameComboBox_Loaded()
     {
-        if (_mainWindow.groupDropdown.SelectedIndex != 0) return;
+        if (_mainWindow.GroupDropdown.SelectedIndex != 0) return;
         var defaultKidNames = GetKidNamesForGroup("Bären");
         _allKidNames = defaultKidNames;
-        _mainWindow.kidNameComboBox.ItemsSource = _allKidNames;
+        _mainWindow.KidNameComboBox.ItemsSource = _allKidNames;
     }
 
     public List<string> GetKidNamesForGroup(string groupName)
