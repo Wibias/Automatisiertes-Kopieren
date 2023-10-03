@@ -49,6 +49,7 @@ public class AutoCompleteHelper
         _mainWindow.GroupDropdown.SelectedItem = "Bären";
 
         e.Handled = true;
+
         if (!_mainWindow.KidNameComboBox.IsDropDownOpen && _mainWindow.KidNameComboBox.HasItems)
             _mainWindow.KidNameComboBox.IsDropDownOpen = true;
 
@@ -133,7 +134,6 @@ public class AutoCompleteHelper
         textBox.CaretIndex = textBox.Text.Length;
     }
 
-
     private void KidNameComboBoxTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (sender is not TextBox textBox) return;
@@ -161,7 +161,6 @@ public class AutoCompleteHelper
     public async void OnGroupSelected(SelectionChangedEventArgs e)
     {
         if (_mainWindow.KidNameComboBox == null) return;
-        LogMessage("OnGroupSelected triggered.");
         if (string.IsNullOrEmpty(_mainWindow.HomeFolder))
         {
             var result = ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
@@ -196,7 +195,6 @@ public class AutoCompleteHelper
 
     public async Task<List<string>> GetKidNamesForGroupAsync(string groupName)
     {
-        LogMessage($"Getting kid names for group: {groupName}");
         var path = groupName switch
         {
             "Bären" => @"Entwicklungsberichte\Baeren Entwicklungsberichte\Aktuell",
