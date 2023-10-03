@@ -101,7 +101,7 @@
 
         <!-- Kid Name -->
         <Label Content="Kind Name:" Grid.Row="1" Grid.Column="0" Margin="10,0,10,10" />
-        <ComboBox x:Name="KidNameComboBox" PreviewTextInput="KidNameComboBox_PreviewTextInput" PreviewKeyDown="KidNameComboBox_PreviewKeyDown" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" IsTextSearchEnabled="False" IsEditable="True" Loaded="KidNameComboBox_Loaded"/>
+        <ComboBox x:Name="KidNameComboBox" PreviewTextInput="KidNameComboBox_PreviewTextInput" KeyDown="KidNameComboBox_KeyDown" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" IsTextSearchEnabled="False" IsEditable="True" Loaded="KidNameComboBox_Loaded"/>
 
         <!-- Report Month -->
         <Label Content="E-Bericht Monat:" Grid.Row="2" Grid.Column="0" Margin="10,0,10,10" />
@@ -200,7 +200,7 @@
         </Grid>
 
         <!-- Kopieren Button -->
-        <Button Content="Kopieren" Grid.Row="7" HorizontalAlignment="Right" VerticalAlignment="Center" Width="100" Margin="0,0,10,0" Click="OnGenerateButtonClicked" Grid.Column="1"/>
+        <Button Content="Kopieren" Grid.Row="7" HorizontalAlignment="Right" VerticalAlignment="Center" Width="100" Margin="0,0,10,0" Click="OnGenerateButtonClickedAsync" Grid.Column="1"/>
         <!-- Select Heutiges Datum Button -->
         <StackPanel Grid.Row="7" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,0,10,5" Grid.ColumnSpan="2"
                     Grid.Column="0" Orientation="Horizontal">

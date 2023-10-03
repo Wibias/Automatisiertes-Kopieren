@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using static Automatisiertes_Kopieren.LoggingHelper;
+using ComboBox = System.Windows.Controls.ComboBox;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using TextBox = System.Windows.Controls.TextBox;
 
@@ -16,6 +18,7 @@ public class AutoCompleteHelper
 {
     private readonly MainWindow _mainWindow;
     private List<string> _allKidNames = new();
+    private bool _isArrowKeySelection;
 
     public AutoCompleteHelper(MainWindow mainWindow)
     {
@@ -46,20 +49,57 @@ public class AutoCompleteHelper
         _mainWindow.GroupDropdown.SelectedItem = "Bären";
 
         e.Handled = true;
+        if (!_mainWindow.KidNameComboBox.IsDropDownOpen && _mainWindow.KidNameComboBox.HasItems)
+            _mainWindow.KidNameComboBox.IsDropDownOpen = true;
+
+        if (!_isArrowKeySelection) return;
+        e.Handled = true;
+        _isArrowKeySelection = false;
     }
 
-    public void OnKidNameComboBoxPreviewKeyDown(KeyEventArgs e, Exception argumentOutOfRangeException)
+    public void OnKidNameComboBoxPreviewKeyDown(KeyEventArgs e)
     {
+        _isArrowKeySelection = false;
+
         switch (e.Key)
         {
             case Key.Down:
-            case Key.Up:
-            {
-                if (_mainWindow.KidNameComboBox.IsDropDownOpen) e.Handled = false;
+                if (!_mainWindow.KidNameComboBox.IsDropDownOpen && _mainWindow.KidNameComboBox.HasItems)
+                {
+                    _mainWindow.KidNameComboBox.IsDropDownOpen = true;
+                    _mainWindow.KidNameComboBox.SelectedIndex = -1;
+                }
+                else if (_mainWindow.KidNameComboBox.IsDropDownOpen)
+                {
+                    _isArrowKeySelection = true;
+
+                    if (_mainWindow.KidNameComboBox.SelectedIndex == -1)
+                    {
+                        _mainWindow.KidNameComboBox.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        var nextIndex = _mainWindow.KidNameComboBox.SelectedIndex + 1;
+                        if (nextIndex < _mainWindow.KidNameComboBox.Items.Count)
+                            _mainWindow.KidNameComboBox.SelectedIndex = nextIndex;
+                    }
+
+                    e.Handled = true;
+                }
+
                 break;
-            }
+
+            case Key.Up:
+                if (_mainWindow.KidNameComboBox.IsDropDownOpen && _mainWindow.KidNameComboBox.SelectedIndex > 0)
+                {
+                    _isArrowKeySelection = true;
+                    _mainWindow.KidNameComboBox.SelectedIndex -= 1;
+                    e.Handled = true;
+                }
+
+                break;
+
             case Key.Enter:
-            {
                 if (_mainWindow.KidNameComboBox.IsDropDownOpen)
                 {
                     _mainWindow.KidNameComboBox.SelectedItem = _mainWindow.KidNameComboBox.Items.CurrentItem;
@@ -67,366 +107,32 @@ public class AutoCompleteHelper
                 }
 
                 break;
-            }
-            case Key.None:
-                break;
-            case Key.Cancel:
-                break;
-            case Key.Back:
-                break;
-            case Key.Tab:
-                break;
-            case Key.LineFeed:
-                break;
-            case Key.Clear:
-                break;
-            case Key.Pause:
-                break;
-            case Key.Capital:
-                break;
-            case Key.HangulMode:
-                break;
-            case Key.JunjaMode:
-                break;
-            case Key.FinalMode:
-                break;
-            case Key.HanjaMode:
-                break;
-            case Key.Escape:
-                break;
-            case Key.ImeConvert:
-                break;
-            case Key.ImeNonConvert:
-                break;
-            case Key.ImeAccept:
-                break;
-            case Key.ImeModeChange:
-                break;
-            case Key.Space:
-                break;
-            case Key.PageUp:
-                break;
-            case Key.Next:
-                break;
-            case Key.End:
-                break;
-            case Key.Home:
-                break;
-            case Key.Left:
-                break;
-            case Key.Right:
-                break;
-            case Key.Select:
-                break;
-            case Key.Print:
-                break;
-            case Key.Execute:
-                break;
-            case Key.PrintScreen:
-                break;
-            case Key.Insert:
-                break;
-            case Key.Delete:
-                break;
-            case Key.Help:
-                break;
-            case Key.D0:
-                break;
-            case Key.D1:
-                break;
-            case Key.D2:
-                break;
-            case Key.D3:
-                break;
-            case Key.D4:
-                break;
-            case Key.D5:
-                break;
-            case Key.D6:
-                break;
-            case Key.D7:
-                break;
-            case Key.D8:
-                break;
-            case Key.D9:
-                break;
-            case Key.A:
-                break;
-            case Key.B:
-                break;
-            case Key.C:
-                break;
-            case Key.D:
-                break;
-            case Key.E:
-                break;
-            case Key.F:
-                break;
-            case Key.G:
-                break;
-            case Key.H:
-                break;
-            case Key.I:
-                break;
-            case Key.J:
-                break;
-            case Key.K:
-                break;
-            case Key.L:
-                break;
-            case Key.M:
-                break;
-            case Key.N:
-                break;
-            case Key.O:
-                break;
-            case Key.P:
-                break;
-            case Key.Q:
-                break;
-            case Key.R:
-                break;
-            case Key.S:
-                break;
-            case Key.T:
-                break;
-            case Key.U:
-                break;
-            case Key.V:
-                break;
-            case Key.W:
-                break;
-            case Key.X:
-                break;
-            case Key.Y:
-                break;
-            case Key.Z:
-                break;
-            case Key.LWin:
-                break;
-            case Key.RWin:
-                break;
-            case Key.Apps:
-                break;
-            case Key.Sleep:
-                break;
-            case Key.NumPad0:
-                break;
-            case Key.NumPad1:
-                break;
-            case Key.NumPad2:
-                break;
-            case Key.NumPad3:
-                break;
-            case Key.NumPad4:
-                break;
-            case Key.NumPad5:
-                break;
-            case Key.NumPad6:
-                break;
-            case Key.NumPad7:
-                break;
-            case Key.NumPad8:
-                break;
-            case Key.NumPad9:
-                break;
-            case Key.Multiply:
-                break;
-            case Key.Add:
-                break;
-            case Key.Separator:
-                break;
-            case Key.Subtract:
-                break;
-            case Key.Decimal:
-                break;
-            case Key.Divide:
-                break;
-            case Key.F1:
-                break;
-            case Key.F2:
-                break;
-            case Key.F3:
-                break;
-            case Key.F4:
-                break;
-            case Key.F5:
-                break;
-            case Key.F6:
-                break;
-            case Key.F7:
-                break;
-            case Key.F8:
-                break;
-            case Key.F9:
-                break;
-            case Key.F10:
-                break;
-            case Key.F11:
-                break;
-            case Key.F12:
-                break;
-            case Key.F13:
-                break;
-            case Key.F14:
-                break;
-            case Key.F15:
-                break;
-            case Key.F16:
-                break;
-            case Key.F17:
-                break;
-            case Key.F18:
-                break;
-            case Key.F19:
-                break;
-            case Key.F20:
-                break;
-            case Key.F21:
-                break;
-            case Key.F22:
-                break;
-            case Key.F23:
-                break;
-            case Key.F24:
-                break;
-            case Key.NumLock:
-                break;
-            case Key.Scroll:
-                break;
-            case Key.LeftShift:
-                break;
-            case Key.RightShift:
-                break;
-            case Key.LeftCtrl:
-                break;
-            case Key.RightCtrl:
-                break;
-            case Key.LeftAlt:
-                break;
-            case Key.RightAlt:
-                break;
-            case Key.BrowserBack:
-                break;
-            case Key.BrowserForward:
-                break;
-            case Key.BrowserRefresh:
-                break;
-            case Key.BrowserStop:
-                break;
-            case Key.BrowserSearch:
-                break;
-            case Key.BrowserFavorites:
-                break;
-            case Key.BrowserHome:
-                break;
-            case Key.VolumeMute:
-                break;
-            case Key.VolumeDown:
-                break;
-            case Key.VolumeUp:
-                break;
-            case Key.MediaNextTrack:
-                break;
-            case Key.MediaPreviousTrack:
-                break;
-            case Key.MediaStop:
-                break;
-            case Key.MediaPlayPause:
-                break;
-            case Key.LaunchMail:
-                break;
-            case Key.SelectMedia:
-                break;
-            case Key.LaunchApplication1:
-                break;
-            case Key.LaunchApplication2:
-                break;
-            case Key.Oem1:
-                break;
-            case Key.OemPlus:
-                break;
-            case Key.OemComma:
-                break;
-            case Key.OemMinus:
-                break;
-            case Key.OemPeriod:
-                break;
-            case Key.Oem2:
-                break;
-            case Key.Oem3:
-                break;
-            case Key.AbntC1:
-                break;
-            case Key.AbntC2:
-                break;
-            case Key.Oem4:
-                break;
-            case Key.Oem5:
-                break;
-            case Key.Oem6:
-                break;
-            case Key.Oem7:
-                break;
-            case Key.Oem8:
-                break;
-            case Key.Oem102:
-                break;
-            case Key.ImeProcessed:
-                break;
-            case Key.System:
-                break;
-            case Key.DbeAlphanumeric:
-                break;
-            case Key.DbeKatakana:
-                break;
-            case Key.DbeHiragana:
-                break;
-            case Key.DbeSbcsChar:
-                break;
-            case Key.DbeDbcsChar:
-                break;
-            case Key.DbeRoman:
-                break;
-            case Key.Attn:
-                break;
-            case Key.CrSel:
-                break;
-            case Key.DbeEnterImeConfigureMode:
-                break;
-            case Key.DbeFlushString:
-                break;
-            case Key.DbeCodeInput:
-                break;
-            case Key.DbeNoCodeInput:
-                break;
-            case Key.DbeDetermineString:
-                break;
-            case Key.DbeEnterDialogConversionMode:
-                break;
-            case Key.OemClear:
-                break;
-            case Key.DeadCharProcessed:
-                break;
-            default:
-                throw argumentOutOfRangeException;
         }
     }
 
-    public void KidNameComboBox_Loaded()
+    public async void KidNameComboBox_Loaded()
     {
-        var selectedGroup = (_mainWindow.GroupDropdown.SelectedItem as ComboBoxItem)?.Content as string;
-
-        if (string.IsNullOrEmpty(selectedGroup)) selectedGroup = "Bären";
-
-        var kidNamesForSelectedGroup = GetKidNamesForGroup(selectedGroup);
-        _allKidNames = kidNamesForSelectedGroup;
+        var selectedGroup = (_mainWindow.GroupDropdown.SelectedItem as ComboBoxItem)?.Content as string ?? "Bären";
+        _allKidNames = await GetKidNamesForGroupAsync(selectedGroup);
         _mainWindow.KidNameComboBox.ItemsSource = _allKidNames;
 
         if (_mainWindow.KidNameComboBox.Template.FindName("PART_EditableTextBox", _mainWindow.KidNameComboBox) is
             TextBox textBox)
             textBox.TextChanged += KidNameComboBoxTextBox_TextChanged;
+        _mainWindow.KidNameComboBox.SelectionChanged += KidNameComboBox_SelectionChanged;
     }
+
+    private void KidNameComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_isArrowKeySelection || sender is not ComboBox comboBox ||
+            comboBox.Template.FindName("PART_EditableTextBox", comboBox) is not TextBox textBox) return;
+
+        var currentText = textBox.Text;
+        comboBox.SelectedItem = e.AddedItems[0];
+        textBox.Text = currentText;
+        textBox.CaretIndex = textBox.Text.Length;
+    }
+
 
     private void KidNameComboBoxTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
@@ -452,7 +158,7 @@ public class AutoCompleteHelper
             _mainWindow.KidNameComboBox.IsDropDownOpen = true;
     }
 
-    public void OnGroupSelected(SelectionChangedEventArgs e)
+    public async void OnGroupSelected(SelectionChangedEventArgs e)
     {
         if (_mainWindow.KidNameComboBox == null) return;
         LogMessage("OnGroupSelected triggered.");
@@ -479,8 +185,7 @@ public class AutoCompleteHelper
         if (e.AddedItems.Count > 0 && e.AddedItems[0] is ComboBoxItem { Content: string selectedGroup } &&
             !string.IsNullOrEmpty(selectedGroup))
         {
-            _allKidNames =
-                GetKidNamesForGroup(selectedGroup);
+            _allKidNames = await GetKidNamesForGroupAsync(selectedGroup);
             KidNameComboBox_Loaded();
         }
         else
@@ -489,32 +194,31 @@ public class AutoCompleteHelper
         }
     }
 
-    public List<string> GetKidNamesForGroup(string groupName)
+    public async Task<List<string>> GetKidNamesForGroupAsync(string groupName)
     {
         LogMessage($"Getting kid names for group: {groupName}");
         var path = groupName switch
-
         {
             "Bären" => @"Entwicklungsberichte\Baeren Entwicklungsberichte\Aktuell",
             "Löwen" => @"Entwicklungsberichte\Loewen Entwicklungsberichte\Aktuell",
             "Schnecken" => @"Entwicklungsberichte\Schnecken Entwicklungsberichte\Aktuell",
             _ => string.Empty
         };
-        return GetKidNamesFromDirectory(path);
+        return await GetKidNamesFromDirectoryAsync(path);
     }
 
-    private List<string> GetKidNamesFromDirectory(string groupPath)
+    private async Task<List<string>> GetKidNamesFromDirectoryAsync(string groupPath)
     {
         if (_mainWindow.HomeFolder != null)
         {
             var fullPath = Path.Combine(_mainWindow.HomeFolder, groupPath);
             if (!Directory.Exists(fullPath)) return new List<string>();
-            var directories = Directory.GetDirectories(fullPath);
+
+            var directories = await Task.Run(() => Directory.GetDirectories(fullPath));
             return directories.Select(Path.GetFileName).OfType<string>().ToList();
         }
 
         LogMessage("_homeFolder is not set.", LogLevel.Warning);
-
         return new List<string>();
     }
 }

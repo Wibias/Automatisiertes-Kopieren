@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using static Automatisiertes_Kopieren.LoggingHelper;
 
@@ -30,7 +31,7 @@ public partial class FileManager
             $@"{_homeFolder}\Entwicklungsberichte\{group} Entwicklungsberichte\Aktuell\{kidName}\{reportYear}\{reportMonth}";
     }
 
-    private static void SafeRenameFile(string sourceFile, string destFile)
+    private static async Task SafeRenameFileAsync(string sourceFile, string destFile)
     {
         try
         {
@@ -42,10 +43,10 @@ public partial class FileManager
                     MessageBoxButton.YesNo);
 
                 if (result == MessageBoxResult.No) return;
-                File.Delete(destFile);
+                await Task.Run(() => File.Delete(destFile));
             }
 
-            File.Move(sourceFile, destFile);
+            await Task.Run(() => File.Move(sourceFile, destFile));
         }
         catch (Exception ex)
         {
@@ -55,9 +56,9 @@ public partial class FileManager
     }
 
 
-    public static Tuple<string, string, string, string> RenameFilesInTargetDirectory(string targetFolderPath,
-        string kidName,
-        string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschuleChecked,
+    public static async Task<Tuple<string, string, string, string>> RenameFilesInTargetDirectoryAsync(
+        string targetFolderPath,
+        string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschuleChecked,
         bool isProtokollbogenChecked, string protokollNumber)
     {
         string? renamedProtokollbogenPath = null;
@@ -82,7 +83,7 @@ public partial class FileManager
         }
 
 
-        var files = Directory.GetFiles(targetFolderPath);
+        var files = await Task.Run(() => Directory.GetFiles(targetFolderPath));
 
         foreach (var file in files)
         {
@@ -94,7 +95,7 @@ public partial class FileManager
             {
                 var newFileName =
                     $"{kidName}_Allgemeiner_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
-                SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
                 renamedAllgemeinEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
             }
 
@@ -102,7 +103,7 @@ public partial class FileManager
                 isVorschuleChecked)
             {
                 var newFileName = $"{kidName}_Vorschule_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
-                SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
                 renamedVorschuleEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
             }
 
@@ -112,14 +113,14 @@ public partial class FileManager
             {
                 var newFileName =
                     $"{kidName}_{protokollNumber}_Protokollbogen_{reportMonth}_{reportYear}{fileExtension}";
-                SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
                 renamedProtokollbogenPath = Path.Combine(targetFolderPath, newFileName);
             }
 
             if (!fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase)) continue;
             {
                 var newFileName = $"{kidName}_Protokoll_Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
-                SafeRenameFile(file, Path.Combine(targetFolderPath, newFileName));
+                await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
                 renamedProtokollElterngespraechPath = Path.Combine(targetFolderPath, newFileName);
             }
         }
@@ -130,15 +131,16 @@ public partial class FileManager
             renamedVorschuleEntwicklungsberichtPath ?? string.Empty);
     }
 
-    public static void CopyFilesFromSourceToTarget(string? sourceFile, string targetFolderPath,
+    public static async Task CopyFilesFromSourceToTargetAsync(string? sourceFile, string targetFolderPath,
         string protokollbogenFileName)
     {
-        if (!Directory.Exists(targetFolderPath)) Directory.CreateDirectory(targetFolderPath);
+        if (!await Task.Run(() => Directory.Exists(targetFolderPath)))
+            await Task.Run(() => Directory.CreateDirectory(targetFolderPath));
 
-        if (sourceFile != null && File.Exists(sourceFile))
+        if (sourceFile != null && await Task.Run(() => File.Exists(sourceFile)))
             try
             {
-                SafeCopyFile(sourceFile, Path.Combine(targetFolderPath, protokollbogenFileName));
+                await SafeCopyFileAsync(sourceFile, Path.Combine(targetFolderPath, protokollbogenFileName));
             }
             catch (Exception ex)
             {
@@ -150,38 +152,55 @@ public partial class FileManager
             LogMessage($"File {protokollbogenFileName} not found in source folder.", LogLevel.Warning);
     }
 
-    private static void SafeCopyFile(string sourceFile, string destFile)
+
+    private static async Task SafeCopyFileAsync(string sourceFile, string destFile)
     {
         try
         {
             if (File.Exists(destFile))
             {
-                var result = ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
-                    "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
+                var result = MessageBoxResult.No;
+
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    result = ShowMessage("Möchten Sie das Hauptverzeichnis ändern?", MessageType.Info,
+                        "Hauptverzeichnis nicht festgelegt", MessageBoxButton.YesNo);
+                });
 
                 if (result == MessageBoxResult.Yes)
                 {
                     var backupFilename =
                         $"{Path.GetDirectoryName(destFile)}\\{DateTime.Now:yyyyMMddHHmmss}_{Path.GetFileName(destFile)}.bak";
-                    File.Move(destFile, backupFilename);
-                    ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}",
-                        MessageType.Info, "Info");
+                    await Task.Run(() => File.Move(destFile, backupFilename));
+
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        ShowMessage($"Die vorhandene Datei wurde gesichert als: {backupFilename}",
+                            MessageType.Info, "Info");
+                    });
                 }
                 else
                 {
-                    ShowMessage("Die Datei wurde nicht kopiert.", MessageType.Info, "Info");
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        ShowMessage("Die Datei wurde nicht kopiert.", MessageType.Info, "Info");
+                    });
                     return;
                 }
             }
 
-            File.Copy(sourceFile, destFile, true);
+            await Task.Run(() => File.Copy(sourceFile, destFile, true));
         }
         catch (Exception ex)
         {
-            LogAndShowMessage($"Fehler beim Kopieren der Datei: {ex.Message}",
-                "Fehler beim Kopieren der Datei", LogLevel.Error, MessageType.Error);
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                LogAndShowMessage($"Fehler beim Kopieren der Datei: {ex.Message}",
+                    "Fehler beim Kopieren der Datei", LogLevel.Error, MessageType.Error);
+            });
         }
     }
+
 
     [GeneratedRegex("\\d+")]
     private static partial Regex ProtokollNumberRegex();

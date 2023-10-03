@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using static Automatisiertes_Kopieren.FileManager.StringUtilities;
 using static Automatisiertes_Kopieren.LoggingHelper;
 
@@ -56,7 +57,7 @@ public static class ValidationHelper
         return double.Parse(monthsAndDaysRaw.Replace(",", "."), CultureInfo.InvariantCulture);
     }
 
-    public static string? ValidateKidName(string kidName, string homeFolder, string groupDropdownText)
+    public static async Task<string?> ValidateKidNameAsync(string kidName, string homeFolder, string groupDropdownText)
     {
         if (string.IsNullOrWhiteSpace(kidName))
         {
@@ -69,7 +70,6 @@ public static class ValidationHelper
 
         var groupPath = $@"{homeFolder}\Entwicklungsberichte\{groupFolder} Entwicklungsberichte\Aktuell";
 
-
         if (!Directory.Exists(groupPath))
         {
             LogAndShowMessage($"Group path does not exist: {groupPath}",
@@ -77,7 +77,8 @@ public static class ValidationHelper
             return null;
         }
 
-        var kidNameExists = Directory.GetDirectories(groupPath).Any(dir =>
+        var directories = await Task.Run(() => Directory.GetDirectories(groupPath)); // Make this asynchronous
+        var kidNameExists = directories.Any(dir =>
             dir.Split(Path.DirectorySeparatorChar).Last().Equals(kidName, StringComparison.OrdinalIgnoreCase));
 
         if (kidNameExists) return kidName;
@@ -85,6 +86,7 @@ public static class ValidationHelper
             "Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.");
         return null;
     }
+
 
     public static int? ValidateReportYearFromTextbox(string reportYearText)
     {

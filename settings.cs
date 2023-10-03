@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using static Automatisiertes_Kopieren.LoggingHelper;
 
@@ -7,9 +8,21 @@ namespace Automatisiertes_Kopieren;
 
 public class AppSettings
 {
-    public string? HomeFolderPath { get; init; }
+    private readonly string? _homeFolderPath;
 
-    public static void SaveSettings(AppSettings settings)
+    public string? HomeFolderPath
+    {
+        get => _homeFolderPath;
+        init
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException("HomeFolderPath cannot be null or whitespace.");
+
+            _homeFolderPath = value;
+        }
+    }
+
+    public static async Task SaveSettingsAsync(AppSettings settings)
     {
         try
         {
@@ -20,7 +33,7 @@ public class AppSettings
             LogMessage($"Attempting to save settings to: {path}", LogLevel.Warning);
 
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, json);
+            await File.WriteAllTextAsync(path, json);
 
             LogMessage("Settings saved successfully.");
         }

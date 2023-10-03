@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -50,13 +51,15 @@ public partial class MainWindow
     public string? HomeFolder
     {
         get => _homeFolder;
-        private set
-        {
-            _homeFolder = value;
-            if (GroupDropdown.SelectedIndex != 0 || string.IsNullOrEmpty(_homeFolder)) return;
-            var defaultKidNames = _autoCompleteHelper.GetKidNamesForGroup("Bären");
-            KidNameComboBox.ItemsSource = defaultKidNames;
-        }
+        private set => _ = SetHomeFolderAsync(value);
+    }
+
+    private async Task SetHomeFolderAsync(string? value)
+    {
+        _homeFolder = value;
+        if (GroupDropdown.SelectedIndex != 0 || string.IsNullOrEmpty(_homeFolder)) return;
+        var defaultKidNames = await _autoCompleteHelper.GetKidNamesForGroupAsync("Bären");
+        KidNameComboBox.ItemsSource = defaultKidNames;
     }
 
     public void SetHomeFolder(string path)
@@ -77,10 +80,11 @@ public partial class MainWindow
             ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
     }
 
-    private void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
+    private async void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
     {
-        _excelHelper.SelectHeutigesDatumEntwicklungsBericht(sender);
+        await _excelHelper.SelectHeutigesDatumEntwicklungsBerichtAsync(sender);
     }
+
 
     private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
     {
@@ -97,14 +101,13 @@ public partial class MainWindow
         _autoCompleteHelper.OnKidNameComboBoxPreviewTextInput(e);
     }
 
-    private void KidNameComboBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    private void KidNameComboBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (sender is null) throw new ArgumentNullException(nameof(sender));
-        var argumentOutOfRangeException = new ArgumentOutOfRangeException();
-        _autoCompleteHelper.OnKidNameComboBoxPreviewKeyDown(e, argumentOutOfRangeException);
+        _autoCompleteHelper.OnKidNameComboBoxPreviewKeyDown(e);
     }
 
-    private void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
+    private async void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
     {
         if (_isHandlingCheckboxEvent) return;
 
@@ -113,10 +116,10 @@ public partial class MainWindow
         switch (e.RoutedEvent.Name)
         {
             case "Checked":
-                HandleProtokollbogenAutoCheckbox(true);
+                await HandleProtokollbogenAutoCheckboxAsync(true);
                 break;
             case "Unchecked":
-                HandleProtokollbogenAutoCheckbox(false);
+                await HandleProtokollbogenAutoCheckboxAsync(false);
                 break;
         }
 
@@ -124,7 +127,7 @@ public partial class MainWindow
         e.Handled = true;
     }
 
-    private void HandleProtokollbogenAutoCheckbox(bool isChecked)
+    private async Task HandleProtokollbogenAutoCheckboxAsync(bool isChecked)
     {
         if (!isChecked) return;
         var group = GroupDropdown.Text;
@@ -140,8 +143,9 @@ public partial class MainWindow
             for (var i = 1; i < nameParts.Length; i++) kidLastName += nameParts[i].Trim() + " ";
 
             kidLastName = kidLastName.Trim();
+
             var (months, error, _, _) =
-                _excelHelper.ExtractFromExcel(group, kidLastName, kidFirstName);
+                await _excelHelper.ExtractFromExcelAsync(group, kidLastName, kidFirstName);
 
             switch (error)
             {
@@ -169,14 +173,14 @@ public partial class MainWindow
         }
     }
 
-    private void OnGenerateButtonClicked(object sender, RoutedEventArgs e)
+    private async void OnGenerateButtonClickedAsync(object sender, RoutedEventArgs e)
     {
-        if (!IsValidInput()) return;
+        if (!await IsValidInputAsync()) return;
 
-        PerformFileOperations();
+        await PerformFileOperationsAsync();
     }
 
-    private bool IsValidInput()
+    private async Task<bool> IsValidInputAsync()
     {
         if (!IsHomeFolderSelected() || !AreAllRequiredFieldsFilled())
             return false;
@@ -201,7 +205,7 @@ public partial class MainWindow
         }
 
         var kidName = KidNameComboBox.Text;
-        var validatedKidName = ValidationHelper.ValidateKidName(kidName, HomeFolder, GroupDropdown.Text);
+        var validatedKidName = await ValidationHelper.ValidateKidNameAsync(kidName, HomeFolder, GroupDropdown.Text);
         if (string.IsNullOrEmpty(validatedKidName))
         {
             ShowMessage("Ungültiger Kinder-Name", MessageType.Error);
@@ -248,9 +252,10 @@ public partial class MainWindow
         return false;
     }
 
-    private string? ValidateKidName()
+    private async Task<string?> ValidateKidNameAsync()
     {
-        var validatedKidName = ValidationHelper.ValidateKidName(KidNameComboBox.Text, HomeFolder!, GroupDropdown.Text);
+        var validatedKidName =
+            await ValidationHelper.ValidateKidNameAsync(KidNameComboBox.Text, HomeFolder!, GroupDropdown.Text);
         if (validatedKidName == null) ShowMessage("Ungültiger Kinder-Name.", MessageType.Error);
         return validatedKidName;
     }
@@ -262,27 +267,29 @@ public partial class MainWindow
         return reportYearNullable;
     }
 
-    private static void FillPdfDocuments(string? protokollbogenPath, string? allgemeinEntwicklungsberichtPath,
+    private static async Task FillPdfDocumentsAsync(string? protokollbogenPath,
+        string? allgemeinEntwicklungsberichtPath,
         string? protokollElterngespraechFilePath, string? vorschuleEntwicklungsberichtPath, string kidName,
         double? months, string group, string parsedBirthDate, string? genderValue)
     {
         if (!string.IsNullOrEmpty(protokollbogenPath))
-            FillPdf(protokollbogenPath, kidName, months ?? 0, group, PdfType.Protokollbogen,
+            await FillPdfAsync(protokollbogenPath, kidName, months ?? 0, group, PdfType.Protokollbogen,
                 parsedBirthDate, genderValue);
 
         if (!string.IsNullOrEmpty(allgemeinEntwicklungsberichtPath))
-            FillPdf(allgemeinEntwicklungsberichtPath, kidName, months ?? 0, group,
+            await FillPdfAsync(allgemeinEntwicklungsberichtPath, kidName, months ?? 0, group,
                 PdfType.AllgemeinEntwicklungsbericht, parsedBirthDate, genderValue);
 
         if (!string.IsNullOrEmpty(protokollElterngespraechFilePath))
-            FillPdf(protokollElterngespraechFilePath, kidName, months ?? 0, group,
+            await FillPdfAsync(protokollElterngespraechFilePath, kidName, months ?? 0, group,
                 PdfType.ProtokollElterngespraech, parsedBirthDate, genderValue);
         if (!string.IsNullOrEmpty(vorschuleEntwicklungsberichtPath))
-            FillPdf(vorschuleEntwicklungsberichtPath, kidName, months ?? 0, group,
+            await FillPdfAsync(vorschuleEntwicklungsberichtPath, kidName, months ?? 0, group,
                 PdfType.VorschuleEntwicklungsbericht, parsedBirthDate, genderValue);
     }
 
-    private void CopyRequiredFiles((string directoryPath, string fileName)? protokollbogenData, string sourceFolderPath,
+    private async Task CopyRequiredFilesAsync((string directoryPath, string fileName)? protokollbogenData,
+        string sourceFolderPath,
         string targetFolderPath, string homeFolder, bool isAllgemeinerChecked, bool isVorschuleChecked,
         bool isProtokollbogenChecked)
     {
@@ -291,14 +298,14 @@ public partial class MainWindow
         if (protokollbogenData.HasValue && !string.IsNullOrEmpty(sourceFolderPath) &&
             !string.IsNullOrEmpty(protokollbogenData.Value.fileName))
             if (isProtokollbogenChecked)
-                FileManager.CopyFilesFromSourceToTarget(
+                await FileManager.CopyFilesFromSourceToTargetAsync(
                     Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName + ".pdf"), targetFolderPath,
                     protokollbogenData.Value.fileName + ".pdf");
 
         var allgemeinerFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
 
         if (isAllgemeinerChecked && File.Exists(allgemeinerFilePath))
-            FileManager.CopyFilesFromSourceToTarget(allgemeinerFilePath, targetFolderPath,
+            await FileManager.CopyFilesFromSourceToTargetAsync(allgemeinerFilePath, targetFolderPath,
                 Path.GetFileName(allgemeinerFilePath));
         else if (!File.Exists(allgemeinerFilePath))
             LogMessage(
@@ -307,7 +314,7 @@ public partial class MainWindow
         var vorschuleFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschule-Entwicklungsbericht.pdf");
 
         if (isVorschuleChecked && File.Exists(vorschuleFilePath))
-            FileManager.CopyFilesFromSourceToTarget(vorschuleFilePath, targetFolderPath,
+            await FileManager.CopyFilesFromSourceToTargetAsync(vorschuleFilePath, targetFolderPath,
                 Path.GetFileName(vorschuleFilePath));
         else if (!File.Exists(vorschuleFilePath))
             LogMessage($"File 'Vorschule-Entwicklungsbericht.pdf' not found at {vorschuleFilePath}.",
@@ -317,7 +324,7 @@ public partial class MainWindow
             Path.Combine(homeFolder, "Entwicklungsboegen", "Protokoll-Elterngespraech.pdf");
 
         if (File.Exists(protokollElterngespraechFilePath))
-            FileManager.CopyFilesFromSourceToTarget(protokollElterngespraechFilePath, targetFolderPath,
+            await FileManager.CopyFilesFromSourceToTargetAsync(protokollElterngespraechFilePath, targetFolderPath,
                 Path.GetFileName(protokollElterngespraechFilePath));
         else
             LogMessage(
@@ -325,7 +332,7 @@ public partial class MainWindow
                 LogLevel.Warning);
     }
 
-    private void PerformFileOperations()
+    private async Task PerformFileOperationsAsync()
     {
         if (_fileManager == null)
         {
@@ -341,7 +348,7 @@ public partial class MainWindow
 
         if (!ValidateHomeFolder()) return;
 
-        var validatedKidName = ValidateKidName();
+        var validatedKidName = await ValidateKidNameAsync();
         if (validatedKidName == null) return;
 
         var kidName = ConvertToTitleCase(validatedKidName);
@@ -356,7 +363,7 @@ public partial class MainWindow
         var kidLastName = nameParts[1];
 
         var (months, _, parsedBirthDate, genderValue) =
-            _excelHelper.ExtractFromExcel(group, kidLastName, kidFirstName);
+            await _excelHelper.ExtractFromExcelAsync(group, kidLastName, kidFirstName);
 
         if (months.HasValue)
         {
@@ -390,13 +397,15 @@ public partial class MainWindow
         var isVorschuleChecked = VorschulentwicklungsberichtCheckbox.IsChecked == true;
         var isProtokollbogenChecked = ProtokollbogenAutoCheckbox.IsChecked == true;
 
-        CopyRequiredFiles(protokollbogenData, sourceFolderPath, targetFolderPath, HomeFolder!, isAllgemeinerChecked,
+        await CopyRequiredFilesAsync(protokollbogenData, sourceFolderPath, targetFolderPath, HomeFolder!,
+            isAllgemeinerChecked,
             isVorschuleChecked, isProtokollbogenChecked);
 
         var numericProtokollNumber = ExtractProtokollNumberFromData(protokollbogenData) ?? string.Empty;
 
         var (renamedProtokollbogenPath, renamedAllgemeinEntwicklungsberichtPath, renamedProtokollElterngespraechPath,
-            renamedVorschuleEntwicklungsberichtPath) = FileManager.RenameFilesInTargetDirectory(targetFolderPath,
+            renamedVorschuleEntwicklungsberichtPath) = await FileManager.RenameFilesInTargetDirectoryAsync(
+            targetFolderPath,
             kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschuleChecked,
             isProtokollbogenChecked, numericProtokollNumber);
 
@@ -407,7 +416,7 @@ public partial class MainWindow
             return;
         }
 
-        FillPdfDocuments(renamedProtokollbogenPath, renamedAllgemeinEntwicklungsberichtPath,
+        await FillPdfDocumentsAsync(renamedProtokollbogenPath, renamedAllgemeinEntwicklungsberichtPath,
             renamedProtokollElterngespraechPath, renamedVorschuleEntwicklungsberichtPath, kidName, months, group,
             parsedBirthDate, genderValue);
         if (OperationState.OperationsSuccessful)
@@ -443,7 +452,7 @@ public partial class MainWindow
         return false;
     }
 
-    private void SelectHomeFolder()
+    private async void SelectHomeFolder()
     {
         var dialog = new VistaFolderBrowserDialog();
         {
@@ -459,9 +468,9 @@ public partial class MainWindow
             {
                 HomeFolderPath = HomeFolder
             };
-            AppSettings.SaveSettings(settings);
+            await AppSettings.SaveSettingsAsync(settings);
 
-            ShowMessage($"Ausgewähltes Hauptverzeichnis: {HomeFolder}");
+            Dispatcher.Invoke(() => { ShowMessage($"Ausgewähltes Hauptverzeichnis: {HomeFolder}"); });
         }
     }
 
