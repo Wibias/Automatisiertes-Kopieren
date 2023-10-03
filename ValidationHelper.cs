@@ -77,7 +77,7 @@ public static class ValidationHelper
             return null;
         }
 
-        var directories = await Task.Run(() => Directory.GetDirectories(groupPath)); // Make this asynchronous
+        var directories = await Task.Run(() => Directory.GetDirectories(groupPath));
         var kidNameExists = directories.Any(dir =>
             dir.Split(Path.DirectorySeparatorChar).Last().Equals(kidName, StringComparison.OrdinalIgnoreCase));
 

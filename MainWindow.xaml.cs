@@ -107,6 +107,11 @@ public partial class MainWindow
         _autoCompleteHelper.OnKidNameComboBoxPreviewKeyDown(e);
     }
 
+    private void KidNameComboBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        KidNameComboBox.IsDropDownOpen = false;
+    }
+
     private async void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
     {
         if (_isHandlingCheckboxEvent) return;

@@ -65,27 +65,30 @@ public class AutoCompleteHelper
         switch (e.Key)
         {
             case Key.Down:
-                if (!_mainWindow.KidNameComboBox.IsDropDownOpen && _mainWindow.KidNameComboBox.HasItems)
+                switch (_mainWindow.KidNameComboBox.IsDropDownOpen)
                 {
-                    _mainWindow.KidNameComboBox.IsDropDownOpen = true;
-                    _mainWindow.KidNameComboBox.SelectedIndex = -1;
-                }
-                else if (_mainWindow.KidNameComboBox.IsDropDownOpen)
-                {
-                    _isArrowKeySelection = true;
-
-                    if (_mainWindow.KidNameComboBox.SelectedIndex == -1)
+                    case false when _mainWindow.KidNameComboBox.HasItems:
+                        _mainWindow.KidNameComboBox.IsDropDownOpen = true;
+                        _mainWindow.KidNameComboBox.SelectedIndex = -1;
+                        break;
+                    case true:
                     {
-                        _mainWindow.KidNameComboBox.SelectedIndex = 0;
-                    }
-                    else
-                    {
-                        var nextIndex = _mainWindow.KidNameComboBox.SelectedIndex + 1;
-                        if (nextIndex < _mainWindow.KidNameComboBox.Items.Count)
-                            _mainWindow.KidNameComboBox.SelectedIndex = nextIndex;
-                    }
+                        _isArrowKeySelection = true;
 
-                    e.Handled = true;
+                        if (_mainWindow.KidNameComboBox.SelectedIndex == -1)
+                        {
+                            _mainWindow.KidNameComboBox.SelectedIndex = 0;
+                        }
+                        else
+                        {
+                            var nextIndex = _mainWindow.KidNameComboBox.SelectedIndex + 1;
+                            if (nextIndex < _mainWindow.KidNameComboBox.Items.Count)
+                                _mainWindow.KidNameComboBox.SelectedIndex = nextIndex;
+                        }
+
+                        e.Handled = true;
+                        break;
+                    }
                 }
 
                 break;
@@ -103,10 +106,15 @@ public class AutoCompleteHelper
             case Key.Enter:
                 if (_mainWindow.KidNameComboBox.IsDropDownOpen)
                 {
-                    _mainWindow.KidNameComboBox.SelectedItem = _mainWindow.KidNameComboBox.Items.CurrentItem;
+                    if (_mainWindow.KidNameComboBox.SelectedIndex != -1)
+                        _mainWindow.KidNameComboBox.SelectedItem =
+                            _mainWindow.KidNameComboBox.Items[_mainWindow.KidNameComboBox.SelectedIndex];
                     _mainWindow.KidNameComboBox.IsDropDownOpen = false;
                 }
 
+                break;
+            case Key.Escape:
+                _mainWindow.KidNameComboBox.IsDropDownOpen = false;
                 break;
         }
     }
@@ -158,6 +166,7 @@ public class AutoCompleteHelper
             _mainWindow.KidNameComboBox.IsDropDownOpen = true;
     }
 
+
     public async void OnGroupSelected(SelectionChangedEventArgs e)
     {
         if (_mainWindow.KidNameComboBox == null) return;
@@ -193,6 +202,7 @@ public class AutoCompleteHelper
         }
     }
 
+
     public async Task<List<string>> GetKidNamesForGroupAsync(string groupName)
     {
         var path = groupName switch
@@ -204,6 +214,7 @@ public class AutoCompleteHelper
         };
         return await GetKidNamesFromDirectoryAsync(path);
     }
+
 
     private async Task<List<string>> GetKidNamesFromDirectoryAsync(string groupPath)
     {

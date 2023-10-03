@@ -143,6 +143,7 @@
                   Margin="10,0,10,10"
                   IsTextSearchEnabled="False"
                   IsEditable="True"
+                  LostFocus="KidNameComboBox_LostFocus"
                   Loaded="KidNameComboBox_Loaded"/>
 
         <!-- Report Month -->
