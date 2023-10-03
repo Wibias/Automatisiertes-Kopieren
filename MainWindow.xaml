@@ -15,22 +15,39 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="MenuItem">
-                                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                <Border x:Name="Bd" 
+                                        Background="{TemplateBinding Background}" 
+                                        BorderBrush="{TemplateBinding BorderBrush}" 
+                                        BorderThickness="{TemplateBinding BorderThickness}">
                                     <Grid>
-                                        <ContentPresenter ContentSource="Header" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" />
-                                        <Popup x:Name="SubMenuPopup" Placement="Bottom" IsOpen="{Binding Path=IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True">
-                                            <Border x:Name="SubMenuBorder" Background="White" BorderBrush="#CCCCCC" BorderThickness="1">
+                                        <ContentPresenter ContentSource="Header" 
+                                                          Margin="{TemplateBinding Padding}" 
+                                                          RecognizesAccessKey="True" />
+                                        <Popup x:Name="SubMenuPopup" 
+                                               Placement="Bottom" 
+                                               IsOpen="{Binding Path=IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" 
+                                               AllowsTransparency="True">
+                                            <Border x:Name="SubMenuBorder" 
+                                                    Background="White" 
+                                                    BorderBrush="#CCCCCC" 
+                                                    BorderThickness="1">
                                                 <StackPanel IsItemsHost="True" />
                                             </Border>
                                         </Popup>
                                     </Grid>
                                 </Border>
                                 <ControlTemplate.Triggers>
-                                    <Trigger Property="IsHighlighted" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#E5E5E5"/>
+                                    <Trigger Property="IsHighlighted" 
+                                             Value="True">
+                                        <Setter TargetName="Bd" 
+                                                Property="Background" 
+                                                Value="#E5E5E5"/>
                                     </Trigger>
-                                    <Trigger Property="IsSubmenuOpen" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#E5E5E5"/>
+                                    <Trigger Property="IsSubmenuOpen" 
+                                             Value="True">
+                                        <Setter TargetName="Bd" 
+                                                Property="Background" 
+                                                Value="#E5E5E5"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -40,16 +57,24 @@
 
                 <!-- Style for the child menu items -->
                 <Style TargetType="MenuItem">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Foreground" Value="#333"/>
-                    <Setter Property="Padding" Value="10 5"/>
-                    <Setter Property="Height" Value="30"/>
-                    <Setter Property="Margin" Value="0"/>
-                    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                    <Setter Property="Background" 
+                            Value="Transparent"/>
+                    <Setter Property="Foreground" 
+                            Value="#333"/>
+                    <Setter Property="Padding" 
+                            Value="10 5"/>
+                    <Setter Property="Height" 
+                            Value="30"/>
+                    <Setter Property="Margin" 
+                            Value="0"/>
+                    <Setter Property="HorizontalAlignment" 
+                            Value="Stretch"/>
                     <Style.Triggers>
                         <!-- Hover effect -->
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#E5E5E5"/>
+                        <Trigger Property="IsMouseOver" 
+                                 Value="True">
+                            <Setter Property="Background" 
+                                    Value="#E5E5E5"/>
                         </Trigger>
                     </Style.Triggers>
                 </Style>
@@ -58,8 +83,10 @@
             <Menu.Background>
                 <SolidColorBrush Color="Transparent"/>
             </Menu.Background>
-            <MenuItem Header="Datei" Style="{StaticResource TopLevelMenuItemStyle}">
-                <MenuItem Header="Heimordner Auswählen" Click="OnSelectHomeFolderButtonClicked">
+            <MenuItem Header="Datei" 
+                      Style="{StaticResource TopLevelMenuItemStyle}">
+                <MenuItem Header="Heimordner Auswählen" 
+                          Click="OnSelectHomeFolderButtonClicked">
                 </MenuItem>
             </MenuItem>
         </Menu>
@@ -92,20 +119,39 @@
         </Grid.RowDefinitions>
 
         <!-- Group Dropdown -->
-        <Label Content="Gruppe:" Grid.Row="0" Margin="10,10,10,10" />
-        <ComboBox x:Name="GroupDropdown" Grid.Row="0" Grid.Column="1" Style="{DynamicResource MahApps.Styles.ComboBox}" Margin="10,10,10,10" SelectionChanged="OnGroupSelected">
+        <Label Content="Gruppe:" 
+               Grid.Row="0" 
+               Margin="10,10,10,10" />
+        <ComboBox x:Name="GroupDropdown" 
+                  Grid.Row="0" Grid.Column="1" 
+                  Style="{DynamicResource MahApps.Styles.ComboBox}" 
+                  SelectionChanged="OnGroupSelected"
+                  Margin="10,10,10,10">
             <ComboBoxItem Content="Bären" IsSelected="True"/>
             <ComboBoxItem Content="Löwen"/>
             <ComboBoxItem Content="Schnecken"/>
         </ComboBox>
 
         <!-- Kid Name -->
-        <Label Content="Kind Name:" Grid.Row="1" Grid.Column="0" Margin="10,0,10,10" />
-        <ComboBox x:Name="KidNameComboBox" PreviewTextInput="KidNameComboBox_PreviewTextInput" KeyDown="KidNameComboBox_KeyDown" Grid.Row="1" Grid.Column="1" Margin="10,0,10,10" IsTextSearchEnabled="False" IsEditable="True" Loaded="KidNameComboBox_Loaded"/>
+        <Label Content="Kind Name:" 
+               Grid.Row="1" Grid.Column="0" 
+               Margin="10,0,10,10" />
+        <ComboBox x:Name="KidNameComboBox"
+                  PreviewTextInput="KidNameComboBox_PreviewTextInput"
+                  KeyDown="KidNameComboBox_KeyDown"
+                  Grid.Row="1" Grid.Column="1"
+                  Margin="10,0,10,10"
+                  IsTextSearchEnabled="False"
+                  IsEditable="True"
+                  Loaded="KidNameComboBox_Loaded"/>
 
         <!-- Report Month -->
-        <Label Content="E-Bericht Monat:" Grid.Row="2" Grid.Column="0" Margin="10,0,10,10" />
-        <ComboBox x:Name="ReportMonthDropdown" Grid.Row="2" Grid.Column="1" Margin="10,0,10,10">
+        <Label Content="E-Bericht Monat:"
+               Grid.Row="2" Grid.Column="0"
+               Margin="10,0,10,10"/>
+        <ComboBox x:Name="ReportMonthDropdown"
+                  Grid.Row="2" Grid.Column="1"
+                  Margin="10,0,10,10">
             <ComboBoxItem Content="Januar" IsSelected="True"/>
             <ComboBoxItem Content="Februar"/>
             <ComboBoxItem Content="März"/>
@@ -121,14 +167,25 @@
         </ComboBox>
 
         <!-- Report Year -->
-        <Label Content="E-Bericht Jahr:" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,10,10" />
-        <TextBox x:Name="ReportYearTextbox" Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10,0,10,10" Grid.Column="1" />
+        <Label Content="E-Bericht Jahr:"
+               Grid.Row="3" Grid.Column="0"
+               HorizontalAlignment="Left" VerticalAlignment="Center"
+               Margin="10,0,10,10"/>
+        <TextBox x:Name="ReportYearTextbox"
+                 Grid.Row="3" Grid.Column="1" 
+                 HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                 Margin="10,0,10,10"/>
 
         <!-- Protokollbogen Setup -->
-        <Label Content="Protokollbogen:" Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,0,0,0" Grid.ColumnSpan="2"
-               Grid.Column="0" />
+        <Label Content="Protokollbogen:" 
+               Grid.Row="4" Grid.Column="0"
+               HorizontalAlignment="Left" VerticalAlignment="Top"
+               Margin="10,0,0,0"/>
 
-        <Grid Grid.Row="4" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="10,0,10,5" Grid.Column="1">
+        <Grid Grid.Row="4" Grid.Column="1" 
+              HorizontalAlignment="Stretch" 
+              VerticalAlignment="Top" 
+              Margin="10,0,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <!-- For the "Manuell:" label -->
@@ -140,10 +197,14 @@
                 <!-- For the CheckBox -->
             </Grid.ColumnDefinitions>
 
-            <Label Content="Manuell:" VerticalAlignment="Center" Grid.Column="0"/>
+            <Label Content="Manuell:"
+                   Grid.Column="0"
+                   VerticalAlignment="Center" />
 
             <!-- New ComboBox for manual month selection -->
-            <ComboBox HorizontalAlignment="Stretch" Margin="5,0" VerticalAlignment="Center" Grid.Column="1">
+            <ComboBox Grid.Column="1" 
+                      HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                      Margin="5,0"  >
                 <!-- Adding the valid months directly in the XAML -->
                 <ComboBoxItem Content="12 Monate Protokollbogen" />
                 <ComboBoxItem Content="18 Monate Protokollbogen" />
@@ -160,11 +221,13 @@
                 <ComboBox.Style>
                     <Style TargetType="ComboBox">
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding ElementName=ProtokollbogenAutoCheckbox, Path=IsChecked}" Value="True">
+                            <DataTrigger Binding="{Binding ElementName=ProtokollbogenAutoCheckbox, Path=IsChecked}" 
+                                         Value="True">
                                 <Setter Property="IsEnabled" Value="False"/>
                                 <Setter Property="Background" Value="LightGray"/>
                             </DataTrigger>
-                            <DataTrigger Binding="{Binding ElementName=ProtokollbogenAutoCheckbox, Path=IsChecked}" Value="False">
+                            <DataTrigger Binding="{Binding ElementName=ProtokollbogenAutoCheckbox, Path=IsChecked}" 
+                                         Value="False">
                                 <Setter Property="IsEnabled" Value="True"/>
                                 <Setter Property="Background" Value="White"/>
                             </DataTrigger>
@@ -173,43 +236,78 @@
                 </ComboBox.Style>
             </ComboBox>
 
-            <Label Content="Automatisch" VerticalAlignment="Center" Grid.Column="2" Margin="10,0,10,0"/>
-            <CheckBox x:Name="ProtokollbogenAutoCheckbox" Margin="0" VerticalAlignment="Center" Grid.Column="3" Checked="OnProtokollbogenAutoCheckboxChanged" Unchecked="OnProtokollbogenAutoCheckboxChanged"/>
+            <Label Content="Automatisch" 
+                   Grid.Column="2" 
+                   VerticalAlignment="Center" 
+                   Margin="10,0,10,0"/>
+            <CheckBox x:Name="ProtokollbogenAutoCheckbox" 
+                      Grid.Column="3" 
+                      VerticalAlignment="Center"  
+                      Checked="OnProtokollbogenAutoCheckboxChanged" 
+                      Unchecked="OnProtokollbogenAutoCheckboxChanged" 
+                      Margin="0"/>
         </Grid>
 
         <!-- Vorschulentwicklungsbericht -->
-        <Grid Grid.Row="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10,0,10,5" Grid.ColumnSpan="2"
-              Grid.Column="0">
+        <Grid Grid.Row="5" Grid.Column="0" 
+              HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+              Grid.ColumnSpan="2" 
+              Margin="10,0,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Label Content="Vorschulentwicklungsbericht:" VerticalAlignment="Center" Grid.Column="0" />
-            <CheckBox x:Name="VorschulentwicklungsberichtCheckbox" Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="1" />
+            <Label Content="Vorschulentwicklungsbericht:" 
+                   Grid.Column="0" 
+                   VerticalAlignment="Center"  />
+            <CheckBox x:Name="VorschulentwicklungsberichtCheckbox" 
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Margin="0,0,0,0"/>
         </Grid>
 
         <!-- Allgemeiner Entwicklungsbericht -->
-        <Grid Grid.Row="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10,0,10,5" Grid.ColumnSpan="2"
-              Grid.Column="0">
+        <Grid Grid.Row="6" Grid.Column="0" 
+              HorizontalAlignment="Stretch" VerticalAlignment="Center"
+              Grid.ColumnSpan="2" 
+              Margin="10,0,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Label Content="Allgemeiner Entwicklungsbericht:" VerticalAlignment="Center" Grid.Column="0" />
-            <CheckBox x:Name="AllgemeinerEntwicklungsberichtCheckbox" Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="1" />
+            <Label Content="Allgemeiner Entwicklungsbericht:" 
+                   Grid.Column="0" 
+                   VerticalAlignment="Center"  />
+            <CheckBox x:Name="AllgemeinerEntwicklungsberichtCheckbox" 
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Margin="0,0,0,0"/>
         </Grid>
 
         <!-- Kopieren Button -->
-        <Button Content="Kopieren" Grid.Row="7" HorizontalAlignment="Right" VerticalAlignment="Center" Width="100" Margin="0,0,10,0" Click="OnGenerateButtonClickedAsync" Grid.Column="1"/>
+        <Button Content="Kopieren" 
+                Grid.Row="7" Grid.Column="1"
+                HorizontalAlignment="Right" VerticalAlignment="Center"
+                Click="OnGenerateButtonClickedAsync" 
+                Margin="0,0,10,0"/>
         <!-- Select Heutiges Datum Button -->
-        <StackPanel Grid.Row="7" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,0,10,5" Grid.ColumnSpan="2"
-                    Grid.Column="0" Orientation="Horizontal">
-            <TextBlock Text="Heutiges Datum für Entwicklungsbericht" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <CheckBox Click="OnSelectHeutigesDatumEntwicklungsBericht" VerticalAlignment="Center"/>
+        <StackPanel Grid.Row="7" Grid.Column="0" 
+                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                    Grid.ColumnSpan="2" Orientation="Horizontal" 
+                    Margin="15,0,10,5">
+            <TextBlock Text="Heutiges Datum für Entwicklungsbericht" 
+                       VerticalAlignment="Center" 
+                       Margin="0,0,10,0"/>
+            <CheckBox Click="OnSelectHeutigesDatumEntwicklungsBericht" 
+                      VerticalAlignment="Center"/>
         </StackPanel>
         <!-- Ausgabe TextBox -->
-        <TextBox x:Name="OutputTextBox" Grid.Row="8" Margin="10" IsReadOnly="True" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" TextWrapping="Wrap" Grid.ColumnSpan="2"
-                 Grid.Column="0" />
+        <TextBox x:Name="OutputTextBox" 
+                 Grid.Row="8" Grid.Column="0" 
+                 IsReadOnly="True"
+                 VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                 TextWrapping="Wrap" Grid.ColumnSpan="2" 
+                 Margin="10"/>
     </Grid>
   </DockPanel>
 </mah:MetroWindow>
