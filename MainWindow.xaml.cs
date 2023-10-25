@@ -82,9 +82,21 @@ public partial class MainWindow
 
     private async void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
     {
-        await _excelHelper.SelectHeutigesDatumEntwicklungsBerichtAsync(sender);
-    }
+        if (string.IsNullOrEmpty(KidNameComboBox.Text))
+        {
+            ShowMessage("Please select a kid name before updating the worksheet.", MessageType.Error);
+            UpdateMonatsrechnerCheckBox.IsChecked = false; // Unselect the checkbox.
+            return;
+        }
 
+        var group = GroupDropdown.Text; // Get the group name from GroupDropdown.Text
+        var success =
+            await _excelHelper.SelectHeutigesDatumEntwicklungsBerichtAsync(UpdateMonatsrechnerCheckBox, group);
+
+        if (success) return;
+        // Worksheet update failed, unselect the checkbox.
+        UpdateMonatsrechnerCheckBox.IsChecked = false;
+    }
 
     private void KidNameComboBox_Loaded(object sender, RoutedEventArgs e)
     {

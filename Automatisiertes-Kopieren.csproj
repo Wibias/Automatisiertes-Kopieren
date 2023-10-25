@@ -7,18 +7,25 @@
     <RootNamespace>Automatisiertes_Kopieren</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>reshot-icon-write-notes-TZWKNFYX6P.ico</ApplicationIcon>
+	  <Version>1.0.6</Version>
 	  
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="reshot-icon-write-notes-TZWKNFYX6P.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.102.1" />
+    <PackageReference Include="AutoCompleteTextBox" Version="1.7.2" />
+    <PackageReference Include="Autoupdater.NET.Official" Version="1.8.4" />
     <PackageReference Include="EPPlus" Version="6.2.10" />
-    <PackageReference Include="itext7" Version="8.0.1" />
-    <PackageReference Include="itext7.bouncy-castle-adapter" Version="8.0.1" />
+    <PackageReference Include="itext7" Version="8.0.2" />
+    <PackageReference Include="itext7.bouncy-castle-adapter" Version="8.0.2" />
     <PackageReference Include="MahApps.Metro" Version="2.4.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />

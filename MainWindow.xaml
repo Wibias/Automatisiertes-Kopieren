@@ -299,8 +299,12 @@
             <TextBlock Text="Heutiges Datum für Entwicklungsbericht" 
                        VerticalAlignment="Center" 
                        Margin="0,0,10,0"/>
-            <CheckBox Click="OnSelectHeutigesDatumEntwicklungsBericht" 
+            <CheckBox x:Name="UpdateMonatsrechnerCheckBox" 
+
+
+                      Click="OnSelectHeutigesDatumEntwicklungsBericht"  
                       VerticalAlignment="Center"/>
+
         </StackPanel>
         <!-- Ausgabe TextBox -->
         <TextBox x:Name="OutputTextBox" 
