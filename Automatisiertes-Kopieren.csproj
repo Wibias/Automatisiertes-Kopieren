@@ -8,13 +8,13 @@
     <RootNamespace>Automatisiertes_Kopieren</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>reshot-icon-write-notes-TZWKNFYX6P.ico</ApplicationIcon>
+    <ApplicationIcon>automatisiertes-kopieren.ico</ApplicationIcon>
 	  <Version>1.0.0.7</Version>
 	  
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="reshot-icon-write-notes-TZWKNFYX6P.ico" />
+    <Content Include="automatisiertes-kopieren.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,7 +24,7 @@
   <ItemGroup>
     <PackageReference Include="AutoCompleteTextBox" Version="1.7.2" />
     <PackageReference Include="Autoupdater.NET.Official" Version="1.8.4" />
-    <PackageReference Include="EPPlus" Version="6.2.10" />
+    <PackageReference Include="EPPlus" Version="7.0.0" />
     <PackageReference Include="itext7" Version="8.0.2" />
     <PackageReference Include="itext7.bouncy-castle-adapter" Version="8.0.2" />
     <PackageReference Include="MahApps.Metro" Version="2.4.10" />

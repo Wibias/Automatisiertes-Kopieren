@@ -138,7 +138,7 @@ public class ExcelHelper
                         !string.Equals(lastNameCell.Trim(), kidLastName, StringComparison.OrdinalIgnoreCase)) continue;
 
                     genderValue = genderWorksheet.Cells[row, 8].Text;
-                    break; // No need to continue checking rows
+                    break;
                 }
             }
             catch (FileNotFoundException)
