@@ -3,12 +3,13 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net7.0-windows</TargetFramework>
+	  <EnableWindowsTargeting>true</EnableWindowsTargeting>
 	  <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>Automatisiertes_Kopieren</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>reshot-icon-write-notes-TZWKNFYX6P.ico</ApplicationIcon>
-	  <Version>1.0.6</Version>
+	  <Version>1.0.0.7</Version>
 	  
   </PropertyGroup>
 
