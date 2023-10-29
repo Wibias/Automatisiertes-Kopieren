@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
+<?xml version="1.0" encoding="ISO-8859-1"?>
 <item>
   <version>1.0.0.8</version>
   <url>https://github.com/Wibias/Automatisiertes-Kopieren/blob/main/Release/Setup.msi</url>
-  <mandatory>true</mandatory>
-  <changelog>https://github.com/ravibpatel/AutoUpdater.NET/releases</changelog>
+  <changelog>https://github.com/enkama/Automatisiertes-Kopieren/releases</changelog>
+  <mandatory>false</mandatory>
 </item>

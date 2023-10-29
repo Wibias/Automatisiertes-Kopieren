@@ -28,7 +28,6 @@ public partial class MainWindow
         InitializeLogger();
         _autoCompleteHelper = new AutoCompleteHelper(this);
         InitializeComponent();
-
         AutoUpdater.Start("https://raw.githubusercontent.com/enkama/Automatisiertes-Kopieren/main/autoupdater.xml");
 
         var settings = AppSettings.LoadSettings();
