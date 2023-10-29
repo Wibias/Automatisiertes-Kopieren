@@ -57,26 +57,35 @@
 
                 <!-- Style for the child menu items -->
                 <Style TargetType="MenuItem">
-                    <Setter Property="Background" 
-                            Value="Transparent"/>
-                    <Setter Property="Foreground" 
-                            Value="#333"/>
-                    <Setter Property="Padding" 
-                            Value="10 5"/>
-                    <Setter Property="Height" 
-                            Value="30"/>
-                    <Setter Property="Margin" 
-                            Value="0"/>
-                    <Setter Property="HorizontalAlignment" 
-                            Value="Stretch"/>
-                    <Style.Triggers>
-                        <!-- Hover effect -->
-                        <Trigger Property="IsMouseOver" 
-                                 Value="True">
-                            <Setter Property="Background" 
-                                    Value="#E5E5E5"/>
-                        </Trigger>
-                    </Style.Triggers>
+                    <!-- ... Your existing setters ... -->
+                    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+
+                    <!-- Modify the ControlTemplate for the MenuItem -->
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="MenuItem">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                    <Grid>
+                                        <ContentPresenter ContentSource="Header" Margin="10 0" RecognizesAccessKey="True" />
+                                        <Popup x:Name="SubMenuPopup" Placement="Bottom" IsOpen="{Binding Path=IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True">
+                                            <Border x:Name="SubMenuBorder" Background="White" BorderBrush="#CCCCCC" BorderThickness="1">
+                                                <StackPanel IsItemsHost="True" />
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#E5E5E5"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSubmenuOpen" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#E5E5E5"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
                 </Style>
             </Menu.Resources>
 
@@ -88,6 +97,9 @@
                 <MenuItem Header="Heimordner Auswählen" 
                           Click="OnSelectHomeFolderButtonClicked">
                 </MenuItem>
+            </MenuItem>
+            <MenuItem Header="Hilfe" Style="{StaticResource TopLevelMenuItemStyle}">
+                <MenuItem Header="Nach Updates suchen" Click="OnSearchUpdateClicked"/>
             </MenuItem>
         </Menu>
 

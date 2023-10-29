@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using OfficeOpenXml;
-using static Automatisiertes_Kopieren.FileManager.StringUtilities;
+using static Automatisiertes_Kopieren.FileManagerHelper.StringUtilities;
 using static Automatisiertes_Kopieren.LoggingHelper;
 
 namespace Automatisiertes_Kopieren;

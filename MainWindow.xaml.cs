@@ -5,9 +5,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using AutoUpdaterDotNET;
 using Ookii.Dialogs.Wpf;
 using Serilog;
-using static Automatisiertes_Kopieren.FileManager.StringUtilities;
+using static Automatisiertes_Kopieren.FileManagerHelper.StringUtilities;
 using static Automatisiertes_Kopieren.PdfHelper;
 using static Automatisiertes_Kopieren.LoggingHelper;
 
@@ -17,7 +18,7 @@ public partial class MainWindow
 {
     private readonly AutoCompleteHelper _autoCompleteHelper;
     private readonly ExcelHelper _excelHelper;
-    private FileManager? _fileManager;
+    private FileManagerHelper? _fileManager;
 
     private string? _homeFolder;
     private bool _isHandlingCheckboxEvent;
@@ -43,7 +44,7 @@ public partial class MainWindow
         }
 
         _excelHelper = new ExcelHelper(HomeFolder);
-
+        AutoUpdater.Start("https://rbsoft.org/updates/AutoUpdaterTest.xml");
         ProtokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
         ProtokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
     }
@@ -75,7 +76,7 @@ public partial class MainWindow
     private void InitializeFileManager()
     {
         if (HomeFolder != null)
-            _fileManager = new FileManager(HomeFolder);
+            _fileManager = new FileManagerHelper(HomeFolder);
         else
             ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
     }
@@ -85,16 +86,15 @@ public partial class MainWindow
         if (string.IsNullOrEmpty(KidNameComboBox.Text))
         {
             ShowMessage("Please select a kid name before updating the worksheet.", MessageType.Error);
-            UpdateMonatsrechnerCheckBox.IsChecked = false; // Unselect the checkbox.
+            UpdateMonatsrechnerCheckBox.IsChecked = false;
             return;
         }
 
-        var group = GroupDropdown.Text; // Get the group name from GroupDropdown.Text
+        var group = GroupDropdown.Text;
         var success =
             await _excelHelper.SelectHeutigesDatumEntwicklungsBerichtAsync(UpdateMonatsrechnerCheckBox, group);
 
         if (success) return;
-        // Worksheet update failed, unselect the checkbox.
         UpdateMonatsrechnerCheckBox.IsChecked = false;
     }
 
@@ -122,6 +122,18 @@ public partial class MainWindow
     private void KidNameComboBox_LostFocus(object sender, RoutedEventArgs e)
     {
         KidNameComboBox.IsDropDownOpen = false;
+    }
+
+    private async void OnGenerateButtonClickedAsync(object sender, RoutedEventArgs e)
+    {
+        if (!await IsValidInputAsync()) return;
+
+        await PerformFileOperationsAsync();
+    }
+
+    private void OnSearchUpdateClicked(object sender, RoutedEventArgs e)
+    {
+        AutoUpdater.Start("https://your-server.com/updates/YourAppUpdate.xml");
     }
 
     private async void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
@@ -190,13 +202,6 @@ public partial class MainWindow
         }
     }
 
-    private async void OnGenerateButtonClickedAsync(object sender, RoutedEventArgs e)
-    {
-        if (!await IsValidInputAsync()) return;
-
-        await PerformFileOperationsAsync();
-    }
-
     private async Task<bool> IsValidInputAsync()
     {
         if (!IsHomeFolderSelected() || !AreAllRequiredFieldsFilled())
@@ -206,7 +211,7 @@ public partial class MainWindow
         {
             if (HomeFolder != null)
             {
-                _fileManager = new FileManager(HomeFolder);
+                _fileManager = new FileManagerHelper(HomeFolder);
             }
             else
             {
@@ -315,14 +320,14 @@ public partial class MainWindow
         if (protokollbogenData.HasValue && !string.IsNullOrEmpty(sourceFolderPath) &&
             !string.IsNullOrEmpty(protokollbogenData.Value.fileName))
             if (isProtokollbogenChecked)
-                await FileManager.CopyFilesFromSourceToTargetAsync(
+                await FileManagerHelper.CopyFilesFromSourceToTargetAsync(
                     Path.Combine(sourceFolderPath, protokollbogenData.Value.fileName + ".pdf"), targetFolderPath,
                     protokollbogenData.Value.fileName + ".pdf");
 
         var allgemeinerFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Allgemeiner-Entwicklungsbericht.pdf");
 
         if (isAllgemeinerChecked && File.Exists(allgemeinerFilePath))
-            await FileManager.CopyFilesFromSourceToTargetAsync(allgemeinerFilePath, targetFolderPath,
+            await FileManagerHelper.CopyFilesFromSourceToTargetAsync(allgemeinerFilePath, targetFolderPath,
                 Path.GetFileName(allgemeinerFilePath));
         else if (!File.Exists(allgemeinerFilePath))
             LogMessage(
@@ -331,7 +336,7 @@ public partial class MainWindow
         var vorschuleFilePath = Path.Combine(homeFolder, "Entwicklungsboegen", "Vorschule-Entwicklungsbericht.pdf");
 
         if (isVorschuleChecked && File.Exists(vorschuleFilePath))
-            await FileManager.CopyFilesFromSourceToTargetAsync(vorschuleFilePath, targetFolderPath,
+            await FileManagerHelper.CopyFilesFromSourceToTargetAsync(vorschuleFilePath, targetFolderPath,
                 Path.GetFileName(vorschuleFilePath));
         else if (!File.Exists(vorschuleFilePath))
             LogMessage($"File 'Vorschule-Entwicklungsbericht.pdf' not found at {vorschuleFilePath}.",
@@ -341,7 +346,7 @@ public partial class MainWindow
             Path.Combine(homeFolder, "Entwicklungsboegen", "Protokoll-Elterngespraech.pdf");
 
         if (File.Exists(protokollElterngespraechFilePath))
-            await FileManager.CopyFilesFromSourceToTargetAsync(protokollElterngespraechFilePath, targetFolderPath,
+            await FileManagerHelper.CopyFilesFromSourceToTargetAsync(protokollElterngespraechFilePath, targetFolderPath,
                 Path.GetFileName(protokollElterngespraechFilePath));
         else
             LogMessage(
@@ -421,7 +426,7 @@ public partial class MainWindow
         var numericProtokollNumber = ExtractProtokollNumberFromData(protokollbogenData) ?? string.Empty;
 
         var (renamedProtokollbogenPath, renamedAllgemeinEntwicklungsberichtPath, renamedProtokollElterngespraechPath,
-            renamedVorschuleEntwicklungsberichtPath) = await FileManager.RenameFilesInTargetDirectoryAsync(
+            renamedVorschuleEntwicklungsberichtPath) = await FileManagerHelper.RenameFilesInTargetDirectoryAsync(
             targetFolderPath,
             kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschuleChecked,
             isProtokollbogenChecked, numericProtokollNumber);

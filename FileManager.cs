@@ -9,11 +9,11 @@ using static Automatisiertes_Kopieren.LoggingHelper;
 
 namespace Automatisiertes_Kopieren;
 
-public partial class FileManager
+public partial class FileManagerHelper
 {
     private readonly string _homeFolder;
 
-    public FileManager(string homeFolder)
+    public FileManagerHelper(string homeFolder)
     {
         _homeFolder = homeFolder ?? throw new ArgumentNullException(nameof(homeFolder));
     }

@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using static Automatisiertes_Kopieren.FileManager.StringUtilities;
+using static Automatisiertes_Kopieren.FileManagerHelper.StringUtilities;
 using static Automatisiertes_Kopieren.LoggingHelper;
 
 
