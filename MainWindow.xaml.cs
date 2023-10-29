@@ -28,6 +28,9 @@ public partial class MainWindow
         InitializeLogger();
         _autoCompleteHelper = new AutoCompleteHelper(this);
         InitializeComponent();
+
+        AutoUpdater.Start("https://raw.githubusercontent.com/enkama/Automatisiertes-Kopieren/main/autoupdater.xml");
+
         var settings = AppSettings.LoadSettings();
         if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
         {
@@ -133,7 +136,7 @@ public partial class MainWindow
 
     private void OnSearchUpdateClicked(object sender, RoutedEventArgs e)
     {
-        AutoUpdater.Start("https://your-server.com/updates/YourAppUpdate.xml");
+        AutoUpdater.Start("https://raw.githubusercontent.com/enkama/Automatisiertes-Kopieren/main/autoupdater.xml");
     }
 
     private async void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)

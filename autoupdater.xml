@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
 <item>
-  <version>1.0.0.7</version>
+  <version>1.0.0.8</version>
   <url>https://github.com/Wibias/Automatisiertes-Kopieren/blob/main/Release/Setup.msi</url>
   <mandatory>true</mandatory>
-  <checksum algorithm="MD5">Update file checksum</checksum>
+  <changelog>https://github.com/ravibpatel/AutoUpdater.NET/releases</changelog>
 </item>
