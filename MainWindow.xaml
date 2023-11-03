@@ -99,8 +99,9 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="Hilfe" Style="{StaticResource TopLevelMenuItemStyle}">
-                <MenuItem Header="Nach Updates suchen" Click="OnSearchUpdateClicked"/>
+                <MenuItem Header="Über Automatisiertes-Kopieren" Click="OnAboutClicked"/>
             </MenuItem>
+
         </Menu>
 
         <Grid>

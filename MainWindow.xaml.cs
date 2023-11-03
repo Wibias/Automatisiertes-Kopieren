@@ -1,21 +1,28 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
+using System.Reflection;
+using System.Resources;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Automatisiertes_Kopieren.Helper;
 using AutoUpdaterDotNET;
 using Ookii.Dialogs.Wpf;
 using Serilog;
-using static Automatisiertes_Kopieren.FileManagerHelper.StringUtilities;
-using static Automatisiertes_Kopieren.PdfHelper;
-using static Automatisiertes_Kopieren.LoggingHelper;
+using static Automatisiertes_Kopieren.Helper.FileManagerHelper.StringUtilities;
+using static Automatisiertes_Kopieren.Helper.PdfHelper;
+using static Automatisiertes_Kopieren.Helper.LoggingHelper;
+using Size = System.Drawing.Size;
 
 namespace Automatisiertes_Kopieren;
 
 public partial class MainWindow
 {
+    private static readonly ResourceManager LocRm = new(typeof(MainWindow));
     private readonly AutoCompleteHelper _autoCompleteHelper;
     private readonly ExcelHelper _excelHelper;
     private FileManagerHelper? _fileManager;
@@ -26,9 +33,12 @@ public partial class MainWindow
     public MainWindow()
     {
         InitializeLogger();
+        Thread.CurrentThread.CurrentUICulture = new CultureInfo("de-DE");
         _autoCompleteHelper = new AutoCompleteHelper(this);
         InitializeComponent();
+
         AutoUpdater.Start("https://raw.githubusercontent.com/enkama/Automatisiertes-Kopieren/main/autoupdater.xml");
+        AutoUpdater.UpdateFormSize = new Size(800, 600);
 
         var settings = AppSettings.LoadSettings();
         if (settings != null && !string.IsNullOrEmpty(settings.HomeFolderPath))
@@ -40,13 +50,13 @@ public partial class MainWindow
             SelectHomeFolder();
             if (string.IsNullOrEmpty(HomeFolder))
             {
-                ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+                ShowMessage(LocRm.GetString("SelectHomeFolderText", Thread.CurrentThread.CurrentUICulture),
+                    MessageType.Error);
                 throw new InvalidOperationException("Home folder must be set.");
             }
         }
 
         _excelHelper = new ExcelHelper(HomeFolder);
-        AutoUpdater.Start("https://rbsoft.org/updates/AutoUpdaterTest.xml");
         ProtokollbogenAutoCheckbox.Checked += OnProtokollbogenAutoCheckboxChanged;
         ProtokollbogenAutoCheckbox.Unchecked += OnProtokollbogenAutoCheckboxChanged;
     }
@@ -80,14 +90,16 @@ public partial class MainWindow
         if (HomeFolder != null)
             _fileManager = new FileManagerHelper(HomeFolder);
         else
-            ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+            ShowMessage(LocRm.GetString("SelectHomeFolderText", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
     }
 
     private async void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrEmpty(KidNameComboBox.Text))
         {
-            ShowMessage("Please select a kid name before updating the worksheet.", MessageType.Error);
+            ShowMessage(LocRm.GetString("SelectKidNameBeforeUpdateWorksheet", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
             UpdateMonatsrechnerCheckBox.IsChecked = false;
             return;
         }
@@ -133,10 +145,13 @@ public partial class MainWindow
         await PerformFileOperationsAsync();
     }
 
-    private void OnSearchUpdateClicked(object sender, RoutedEventArgs e)
+    private void OnAboutClicked(object sender, RoutedEventArgs e)
     {
-        AutoUpdater.Start("https://raw.githubusercontent.com/enkama/Automatisiertes-Kopieren/main/autoupdater.xml");
+        var aboutWindow = new AboutWindow(Assembly.GetEntryAssembly()?.GetName().Version?.ToString());
+
+        aboutWindow.ShowDialog();
     }
+
 
     private async void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
     {
@@ -181,25 +196,26 @@ public partial class MainWindow
             switch (error)
             {
                 case "HomeFolderNotSet":
-                    ShowMessage("Bitte setzen Sie zuerst den Heimordner.", MessageType.Error);
+                    ShowMessage(LocRm.GetString("SelectHomeFolderText", Thread.CurrentThread.CurrentUICulture),
+                        MessageType.Error);
                     ProtokollbogenAutoCheckbox.IsChecked = false;
                     return;
                 case "FileNotFound":
-                    ShowMessage(
-                        "Das erforderliche Excel-Dokument konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.",
+                    ShowMessage(LocRm.GetString("ExcelNotFoundCheckPath", Thread.CurrentThread.CurrentUICulture),
                         MessageType.Error);
                     ProtokollbogenAutoCheckbox.IsChecked = false;
                     return;
             }
 
             if (months.HasValue) return;
-            ShowMessage("Das Alter des Kindes konnte nicht aus Excel extrahiert werden.",
+            ShowMessage(LocRm.GetString("ExcelCantExtractAge", Thread.CurrentThread.CurrentUICulture),
                 MessageType.Error);
             ProtokollbogenAutoCheckbox.IsChecked = false;
         }
         else
         {
-            ShowMessage("Ungültiger Name. Bitte überprüfen Sie die Daten.", MessageType.Error);
+            ShowMessage(LocRm.GetString("InvalidKidName", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
             ProtokollbogenAutoCheckbox.IsChecked = false;
         }
     }
@@ -217,23 +233,26 @@ public partial class MainWindow
             }
             else
             {
-                ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+                ShowMessage(LocRm.GetString("SelectHomeFolderText", Thread.CurrentThread.CurrentUICulture),
+                    MessageType.Error);
                 return false;
             }
         }
 
         if (HomeFolder == null)
-        {
-            ShowMessage("Das Hauptverzeichnis ist nicht festgelegt.", MessageType.Error);
-            return false;
-        }
+            ShowMessage(LocRm.GetString("SelectHomeFolderText", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
 
         var kidName = KidNameComboBox.Text;
-        var validatedKidName = await ValidationHelper.ValidateKidNameAsync(kidName, HomeFolder, GroupDropdown.Text);
-        if (string.IsNullOrEmpty(validatedKidName))
+        if (HomeFolder != null)
         {
-            ShowMessage("Ungültiger Kinder-Name", MessageType.Error);
-            return false;
+            var validatedKidName = await ValidationHelper.ValidateKidNameAsync(kidName, HomeFolder, GroupDropdown.Text);
+            if (string.IsNullOrEmpty(validatedKidName))
+            {
+                ShowMessage(LocRm.GetString("InvalidKidName", Thread.CurrentThread.CurrentUICulture),
+                    MessageType.Error);
+                return false;
+            }
         }
 
         var reportYearText = ReportYearTextbox.Text;
@@ -242,22 +261,25 @@ public partial class MainWindow
             var parsedYear = ValidationHelper.ValidateReportYearFromTextbox(reportYearText);
             if (!parsedYear.HasValue)
             {
-                ShowMessage("Bitte geben Sie ein gültiges Jahr für den Bericht an.", MessageType.Error);
+                ShowMessage(LocRm.GetString("SelectValidYear", Thread.CurrentThread.CurrentUICulture),
+                    MessageType.Error);
                 return false;
             }
         }
         catch (Exception ex)
         {
-            ShowMessage(
-                $"Beim Verarbeiten der Excel-Datei ist ein unerwarteter Fehler aufgetreten: {ex.Message}",
-                MessageType.Error);
+            var errorMessageTemplate = LocRm.GetString("UnexpectedExcelError", Thread.CurrentThread.CurrentUICulture);
+            if (errorMessageTemplate == null) return false;
+            var formattedErrorMessage = string.Format(errorMessageTemplate, ex.Message);
+            ShowMessage(formattedErrorMessage, MessageType.Error);
+
             return false;
         }
 
         return true;
     }
 
-    private static string? ExtractProtokollNumberFromData((string directoryPath, string fileName)? protokollbogenData)
+    private static string? ExtractProtocolNumberFromData((string directoryPath, string fileName)? protokollbogenData)
     {
         if (!protokollbogenData.HasValue) return null;
 
@@ -265,14 +287,16 @@ public partial class MainWindow
         var match = ProtokollbogenFileNameRegex().Match(fileName);
 
         if (match.Success) return match.Groups[1].Value + "_Monate";
-        ShowMessage("Fehler beim Extrahieren der Protokollnummer.", MessageType.Error);
+        ShowMessage(LocRm.GetString("ErrorExtractProtocolNumber", Thread.CurrentThread.CurrentUICulture),
+            MessageType.Error);
         return null;
     }
 
     private bool ValidateHomeFolder()
     {
         if (HomeFolder != null) return true;
-        ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
+        ShowMessage(LocRm.GetString("SelectHomeFolderText", Thread.CurrentThread.CurrentUICulture),
+            MessageType.Error);
         return false;
     }
 
@@ -280,14 +304,18 @@ public partial class MainWindow
     {
         var validatedKidName =
             await ValidationHelper.ValidateKidNameAsync(KidNameComboBox.Text, HomeFolder!, GroupDropdown.Text);
-        if (validatedKidName == null) ShowMessage("Ungültiger Kinder-Name.", MessageType.Error);
+        if (validatedKidName == null)
+            ShowMessage(LocRm.GetString("InvalidKidName", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
         return validatedKidName;
     }
 
     private int? ValidateReportYear()
     {
         var reportYearNullable = ValidationHelper.ValidateReportYearFromTextbox(ReportYearTextbox.Text);
-        if (!reportYearNullable.HasValue) ShowMessage("Ungültiges Jahr.", MessageType.Error);
+        if (!reportYearNullable.HasValue)
+            ShowMessage(LocRm.GetString("SelectValidYear", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
         return reportYearNullable;
     }
 
@@ -360,7 +388,8 @@ public partial class MainWindow
     {
         if (_fileManager == null)
         {
-            ShowMessage("Der Dateimanager ist nicht initialisiert.", MessageType.Error);
+            ShowMessage(LocRm.GetString("FileManagerNotInitialized", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
             return;
         }
 
@@ -399,7 +428,8 @@ public partial class MainWindow
 
                 if (HomeFolder == null)
                 {
-                    ShowMessage("Das Hauptverzeichnis ist nicht festgelegt.", MessageType.Error);
+                    ShowMessage(LocRm.GetString("SelectHomeFolderText", Thread.CurrentThread.CurrentUICulture),
+                        MessageType.Error);
                     return;
                 }
 
@@ -411,7 +441,8 @@ public partial class MainWindow
         }
         else
         {
-            ShowMessage("Fehler beim Extrahieren der Monate aus Excel.", MessageType.Error);
+            ShowMessage(LocRm.GetString("ExcelCantExtractMonths", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
             return;
         }
 
@@ -425,7 +456,7 @@ public partial class MainWindow
             isAllgemeinerChecked,
             isVorschuleChecked, isProtokollbogenChecked);
 
-        var numericProtokollNumber = ExtractProtokollNumberFromData(protokollbogenData) ?? string.Empty;
+        var numericProtokollNumber = ExtractProtocolNumberFromData(protokollbogenData) ?? string.Empty;
 
         var (renamedProtokollbogenPath, renamedAllgemeinEntwicklungsberichtPath, renamedProtokollElterngespraechPath,
             renamedVorschuleEntwicklungsberichtPath) = await FileManagerHelper.RenameFilesInTargetDirectoryAsync(
@@ -435,8 +466,12 @@ public partial class MainWindow
 
         if (string.IsNullOrEmpty(parsedBirthDate))
         {
-            LogAndShowMessage("Geburtsdatum konnte nicht extrahiert werden.",
-                "Error extracting birth date.");
+            var localizedUserMessage =
+                LocRm.GetString("BirthDateExtractionError", Thread.CurrentThread.CurrentUICulture);
+            const string logMessage = "Error extracting birth date.";
+
+            LogAndShowMessage(logMessage, localizedUserMessage, LogLevel.Error, MessageType.Error);
+
             return;
         }
 
@@ -444,7 +479,8 @@ public partial class MainWindow
             renamedProtokollElterngespraechPath, renamedVorschuleEntwicklungsberichtPath, kidName, months, group,
             parsedBirthDate, genderValue);
         if (OperationState.OperationsSuccessful)
-            ShowMessage("Dateien erfolgreich kopiert und umbenannt.");
+            ShowMessage(LocRm.GetString("CopyRenamedSuccessfully", Thread.CurrentThread.CurrentUICulture),
+                MessageType.Error);
     }
 
     private bool IsHomeFolderSelected()
@@ -465,14 +501,15 @@ public partial class MainWindow
 
         if (string.IsNullOrWhiteSpace(childName) || !childName.Contains(' '))
         {
-            ShowMessage("Bitte geben Sie einen gültigen Namen mit Vor- und Nachnamen an.",
+            ShowMessage(LocRm.GetString("ValidFirstAndLastName", Thread.CurrentThread.CurrentUICulture),
                 MessageType.Error);
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(selectedGroup) && !string.IsNullOrWhiteSpace(selectedReportMonth) &&
             !string.IsNullOrWhiteSpace(selectedReportYear)) return true;
-        ShowMessage("Bitte füllen Sie alle geforderten Felder aus.", MessageType.Error);
+        ShowMessage(LocRm.GetString("FillOutRequiredFields", Thread.CurrentThread.CurrentUICulture),
+            MessageType.Error);
         return false;
     }
 

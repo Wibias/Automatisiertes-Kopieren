@@ -2,7 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using static Automatisiertes_Kopieren.LoggingHelper;
+using static Automatisiertes_Kopieren.Helper.LoggingHelper;
 
 namespace Automatisiertes_Kopieren;
 
