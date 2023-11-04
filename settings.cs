@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -6,9 +7,11 @@ using static Automatisiertes_Kopieren.Helper.LoggingHelper;
 
 namespace Automatisiertes_Kopieren;
 
-public class AppSettings
+public class Settings
 {
     private readonly string? _homeFolderPath;
+
+    private string PreferredLanguage { get; set; } = CultureInfo.InstalledUICulture.Name;
 
     public string? HomeFolderPath
     {
@@ -22,7 +25,7 @@ public class AppSettings
         }
     }
 
-    public static async Task SaveSettingsAsync(AppSettings settings)
+    public static async Task SaveSettingsAsync(Settings settings)
     {
         try
         {
@@ -43,12 +46,25 @@ public class AppSettings
         }
     }
 
-    public static AppSettings? LoadSettings()
+    public static Settings? LoadSettings()
     {
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Automatisiertes_Kopieren", "settings.json");
-        if (!File.Exists(path)) return new AppSettings();
+        if (!File.Exists(path)) return new Settings();
         var json = File.ReadAllText(path);
-        return JsonConvert.DeserializeObject<AppSettings>(json);
+        return JsonConvert.DeserializeObject<Settings>(json);
+    }
+
+    public static CultureInfo LoadUserPreferredCulture()
+    {
+        var settings = LoadSettings();
+        return new CultureInfo(settings?.PreferredLanguage ?? CultureInfo.InstalledUICulture.Name);
+    }
+
+    public static async Task SaveUserPreferredCultureAsync(CultureInfo culture)
+    {
+        var settings = LoadSettings() ?? new Settings();
+        settings.PreferredLanguage = culture.Name;
+        await SaveSettingsAsync(settings);
     }
 }

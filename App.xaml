@@ -13,7 +13,7 @@
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <BitmapImage x:Key="AppIcon" UriSource="pack://application:,,,/Automatisiertes-Kopieren;component\Resources\automatisiertes-kopieren.ico" />
+            <BitmapImage x:Key="AppIcon" UriSource="pack://application:,,,/Resources/Icons/automatisiertes-kopieren.ico" />
 
         </ResourceDictionary>
     </Application.Resources>
