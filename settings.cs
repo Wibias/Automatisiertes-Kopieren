@@ -54,17 +54,4 @@ public class Settings
         var json = File.ReadAllText(path);
         return JsonConvert.DeserializeObject<Settings>(json);
     }
-
-    public static CultureInfo LoadUserPreferredCulture()
-    {
-        var settings = LoadSettings();
-        return new CultureInfo(settings?.PreferredLanguage ?? CultureInfo.InstalledUICulture.Name);
-    }
-
-    public static async Task SaveUserPreferredCultureAsync(CultureInfo culture)
-    {
-        var settings = LoadSettings() ?? new Settings();
-        settings.PreferredLanguage = culture.Name;
-        await SaveSettingsAsync(settings);
-    }
 }

@@ -11,7 +11,8 @@ public static class LoggingHelper
     {
         Error,
         Info,
-        Warning
+        Warning,
+        Debug
     }
 
     public enum MessageType
@@ -53,6 +54,9 @@ public static class LoggingHelper
                 break;
             case LogLevel.Warning:
                 Log.Warning(message);
+                break;
+            case LogLevel.Debug:
+                Log.Debug(message);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(level), level, null);
