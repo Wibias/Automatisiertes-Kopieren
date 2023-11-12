@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Resources;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,7 +19,6 @@ namespace Automatisiertes_Kopieren;
 
 public partial class MainWindow
 {
-
     private readonly AutoCompleteHelper _autoCompleteHelper;
     private readonly ExcelHelper _excelHelper;
     private FileManagerHelper? _fileManager;
