@@ -22,38 +22,6 @@ public class ExcelHelper
     private string? ConvertedGroupName { get; set; }
     private string? ShortGroupName { get; set; }
 
-    private static bool AreNamesSimilar(string name1, string name2)
-    {
-        const int threshold = 2;
-        var distance = LevenshteinDistance(name1, name2);
-
-        // Names are similar if the distance is within the threshold and they are not the same.
-        return distance <= threshold;
-    }
-
-
-    private static int LevenshteinDistance(string s, string t)
-    {
-        var n = s.Length;
-        var m = t.Length;
-        var d = new int[n + 1, m + 1];
-
-        if (n == 0) return m;
-        if (m == 0) return n;
-
-        for (var i = 0; i <= n; d[i, 0] = i++)
-        for (var j = 0; j <= m; d[0, j] = j++)
-        for (var x = 1; x <= n; x++)
-        for (var y = 1; y <= m; y++)
-        {
-            var cost = t[y - 1] == s[x - 1] ? 0 : 1;
-            d[x, y] = Math.Min(Math.Min(d[x - 1, y] + 1, d[x, y - 1] + 1), d[x - 1, y - 1] + cost);
-        }
-
-        return d[n, m];
-    }
-
-
     public Task<(double? months, string? error, string? parsedBirthDate, string? gender)> ExtractFromExcelAsync(
         string group, string kidLastName, string kidFirstName)
     {
@@ -104,7 +72,6 @@ public class ExcelHelper
                     if (string.Equals(excelFirstName, directoryFirstName, StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(excelLastName, directoryLastName, StringComparison.OrdinalIgnoreCase))
                     {
-                        // Names are exactly the same, proceed with copying
                         var birthDate = mainWorksheet.Cells[row, 5].Text;
                         _ = DateTime.TryParse(birthDate, out var parsedDate);
                         parsedBirthDate = parsedDate.ToString("dd.MM.yyyy");
@@ -117,10 +84,9 @@ public class ExcelHelper
                     }
                     else if (excelLastName != null &&
                              excelFirstName != null &&
-                             AreNamesSimilar(excelFirstName, directoryFirstName) &&
-                             AreNamesSimilar(excelLastName, directoryLastName))
+                             StringHelpers.AreNamesSimilar(excelFirstName, directoryFirstName) &&
+                             StringHelpers.AreNamesSimilar(excelLastName, directoryLastName))
                     {
-                        // Names are very similar but not the same, prompt the user to correct
                         LogAndShowMessage(
                             $"Der Name in Excel ähnelt dem Ordnernamen, ist aber nicht identisch. Excel: {excelFirstName} {excelLastName}, Ordner: {directoryFirstName} {directoryLastName}",
                             $"Der Name in Excel ähnelt dem Ordnernamen, ist aber nicht identisch.\nExcel: {excelFirstName} {excelLastName}\nOrdner: {directoryFirstName} {directoryLastName}");

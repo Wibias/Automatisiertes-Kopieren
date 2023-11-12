@@ -285,7 +285,6 @@ public partial class MainWindow
         return false;
     }
 
-
     private async Task<string?> ValidateKidNameAsync()
     {
         var validatedKidName =
