@@ -139,11 +139,12 @@ public partial class MainWindow
 
     private void OnAboutClicked(object sender, RoutedEventArgs e)
     {
-        var aboutWindow = new AboutWindow(Assembly.GetEntryAssembly()?.GetName().Version?.ToString());
+        var version = Assembly.GetEntryAssembly()?.GetName().Version;
+        var versionString = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "Unknown";
 
+        var aboutWindow = new AboutWindow(versionString);
         aboutWindow.ShowDialog();
     }
-
 
     private async void OnProtokollbogenAutoCheckboxChanged(object sender, RoutedEventArgs e)
     {
