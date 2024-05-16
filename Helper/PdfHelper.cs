@@ -14,7 +14,8 @@ public static class PdfHelper
         Protokollbogen,
         AllgemeinEntwicklungsbericht,
         ProtokollElterngespraech,
-        VorschuleEntwicklungsbericht
+        VorschuleEntwicklungsbericht,
+        KrippeUebergangsbericht
     }
 
     public static async Task FillPdfAsync(string pdfPath, string kidName, double monthsValue, string group,
@@ -23,10 +24,12 @@ public static class PdfHelper
     {
         try
         {
+
             using var pdfDoc = new PdfDocument(new PdfReader(pdfPath), new PdfWriter(pdfPath + ".temp"));
 
             var form = PdfAcroForm.GetAcroForm(pdfDoc, true) ??
                        throw new Exception("The PDF does not contain any form fields.");
+
             switch (pdfType)
             {
                 case PdfType.Protokollbogen:
@@ -66,31 +69,32 @@ public static class PdfHelper
                     form.GetField("Datum").SetValue(DateTime.Now.ToString("dd.MM.yyyy"));
                     form.GetField("Gruppe").SetValue(group);
                     break;
+                case PdfType.KrippeUebergangsbericht:
+                    form.GetField("Name des Kindes").SetValue(kidName);
+                    form.GetField("Datum").SetValue(DateTime.Now.ToString("dd.MM.yyyy"));
+
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(pdfType), pdfType, null);
             }
 
             pdfDoc.Close();
+
         }
         catch (Exception ex)
         {
             LogMessage(
-                $"Error encountered in FillPdf. Message: {ex.Message}. StackTrace: {ex.StackTrace}", LogLevel.Error);
+                $"Fehler in FillPdf aufgetreten. Meldung: {ex.Message}. StackTrace: {ex.StackTrace}", LogLevel.Error);
         }
 
         try
         {
-            await Task.Run(() =>
-            {
-                File.Delete(pdfPath);
-                File.Move(pdfPath + ".temp", pdfPath);
-            });
+            await Task.Run(() => File.Delete(pdfPath));
+            await Task.Run(() => File.Move(pdfPath + ".temp", pdfPath));
         }
         catch (Exception ex)
         {
-            LogMessage(
-                $"Error encountered while handling file operations. Message: {ex.Message}. StackTrace: {ex.StackTrace}",
-                LogLevel.Error);
+            LogMessage($"Fehler beim Ersetzen der temporären Datei: {ex.Message}. StackTrace: {ex.StackTrace}", LogLevel.Error);
         }
     }
 }

@@ -3,7 +3,7 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
                  Title="Automatisiertes Kopieren" 
-                 MinHeight="400" MinWidth="550"
+                 MinHeight="300" MinWidth="550"
                  Width="600" Height="600"
                  Closed="MainWindow_Closed">
     <DockPanel>
@@ -125,6 +125,8 @@
             <!-- Vorschulentwicklungsbericht -->
             <RowDefinition Height="Auto"/>
             <!-- Allgemeiner Entwicklungsbericht -->
+            <RowDefinition Height="Auto"/>
+            <!-- Krippe Uebergangsbericht -->
             <RowDefinition Height="Auto"/>
             <!-- Select Home Folder Button and Generate Button -->
             <RowDefinition Height="*"/>
@@ -297,15 +299,33 @@
                       VerticalAlignment="Center"
                       Margin="0,0,0,0"/>
         </Grid>
+            
+        <!-- Krippe Übergangsbericht -->
+        <Grid Grid.Row="7" Grid.Column="0" 
+              HorizontalAlignment="Stretch" VerticalAlignment="Center"
+              Grid.ColumnSpan="2" 
+              Margin="10,0,10,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Label Content="Krippe Übergangsbericht:" 
+                   Grid.Column="0" 
+                   VerticalAlignment="Center"  />
+            <CheckBox x:Name="KrippeUebergangsberichtCheckbox" 
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Margin="0,0,0,0"/>
+        </Grid>
 
         <!-- Kopieren Button -->
         <Button Content="Kopieren" 
-                Grid.Row="7" Grid.Column="1"
+                Grid.Row="8" Grid.Column="1"
                 HorizontalAlignment="Right" VerticalAlignment="Center"
                 Click="OnGenerateButtonClickedAsync" 
                 Margin="0,0,10,0"/>
         <!-- Select Heutiges Datum Button -->
-        <StackPanel Grid.Row="7" Grid.Column="0" 
+        <StackPanel Grid.Row="8" Grid.Column="0" 
                     HorizontalAlignment="Left" VerticalAlignment="Center"
                     Grid.ColumnSpan="2" Orientation="Horizontal" 
                     Margin="15,0,10,5">
@@ -317,11 +337,11 @@
 
                       Click="OnSelectHeutigesDatumEntwicklungsBericht"  
                       VerticalAlignment="Center"/>
-
         </StackPanel>
+            
         <!-- Ausgabe TextBox -->
         <TextBox x:Name="OutputTextBox" 
-                 Grid.Row="8" Grid.Column="0" 
+                 Grid.Row="9" Grid.Column="0" 
                  IsReadOnly="True"
                  VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                  TextWrapping="Wrap" Grid.ColumnSpan="2" 

@@ -59,9 +59,6 @@ public class ExcelHelper
                     firstNameCell = firstNameCell?.Trim();
                     lastNameCell = lastNameCell?.Trim();
 
-                    LogMessage($"Excel name check - First Name: '{firstNameCell}', Last Name: '{lastNameCell}'",
-                        LogLevel.Error);
-
                     var excelFirstName = firstNameCell?.Trim();
                     var excelLastName = lastNameCell?.Trim();
                     var directoryFirstName = kidFirstName.Trim();
@@ -160,12 +157,12 @@ public class ExcelHelper
             }
             else
             {
-                throw new Exception($"The worksheet '{worksheetName}' was not found in the file {filePath}.");
+                throw new Exception($"Das Arbeitsblatt '{worksheetName}' wurde nicht in der Datei {filePath} gefunden.");
             }
         }
         catch (Exception ex)
         {
-            LogMessage($"Error updating worksheet '{worksheetName}': {ex.Message}", LogLevel.Error);
+            LogMessage($"Fehler beim Aktualisieren des Arbeitsblatts '{worksheetName}': {ex.Message}", LogLevel.Error);
             throw;
         }
     }

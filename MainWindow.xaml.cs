@@ -46,7 +46,7 @@ public partial class MainWindow
             if (string.IsNullOrEmpty(HomeFolder))
             {
                 ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
-                throw new InvalidOperationException("Home folder must be set.");
+                throw new InvalidOperationException("Hauptverzeichnis muss gesetzt sein.");
             }
         }
 
@@ -91,7 +91,7 @@ public partial class MainWindow
     {
         if (string.IsNullOrEmpty(KidNameComboBox.Text))
         {
-            ShowMessage("Please select a kid name before updating the worksheet.", MessageType.Error);
+            ShowMessage("Bitte wählen Sie einen Kindernamen, bevor Sie das Arbeitsblatt aktualisieren.", MessageType.Error);
             UpdateMonatsrechnerCheckBox.IsChecked = false;
             return;
         }
@@ -140,7 +140,7 @@ public partial class MainWindow
     private void OnAboutClicked(object sender, RoutedEventArgs e)
     {
         var version = Assembly.GetEntryAssembly()?.GetName().Version;
-        var versionString = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "Unknown";
+        var versionString = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "Unbekannt";
 
         var aboutWindow = new AboutWindow(versionString);
         aboutWindow.ShowDialog();
@@ -302,7 +302,7 @@ public partial class MainWindow
 
     private static async Task FillPdfDocumentsAsync(string? protokollbogenPath,
         string? allgemeinEntwicklungsberichtPath,
-        string? protokollElterngespraechFilePath, string? vorschuleEntwicklungsberichtPath, string kidName,
+        string? protokollElterngespraechPath, string? vorschuleEntwicklungsberichtPath, string? krippeUebergangsberichtPath, string kidName,
         double? months, string group, string parsedBirthDate, string? genderValue)
     {
         if (!string.IsNullOrEmpty(protokollbogenPath))
@@ -313,18 +313,23 @@ public partial class MainWindow
             await FillPdfAsync(allgemeinEntwicklungsberichtPath, kidName, months ?? 0, group,
                 PdfType.AllgemeinEntwicklungsbericht, parsedBirthDate, genderValue);
 
-        if (!string.IsNullOrEmpty(protokollElterngespraechFilePath))
-            await FillPdfAsync(protokollElterngespraechFilePath, kidName, months ?? 0, group,
+        if (!string.IsNullOrEmpty(protokollElterngespraechPath))
+            await FillPdfAsync(protokollElterngespraechPath, kidName, months ?? 0, group,
                 PdfType.ProtokollElterngespraech, parsedBirthDate, genderValue);
+
         if (!string.IsNullOrEmpty(vorschuleEntwicklungsberichtPath))
             await FillPdfAsync(vorschuleEntwicklungsberichtPath, kidName, months ?? 0, group,
                 PdfType.VorschuleEntwicklungsbericht, parsedBirthDate, genderValue);
+
+        if (!string.IsNullOrEmpty(krippeUebergangsberichtPath))
+            await FillPdfAsync(krippeUebergangsberichtPath, kidName, months ?? 0, group,
+                PdfType.KrippeUebergangsbericht, parsedBirthDate, genderValue);
     }
 
     private async Task CopyRequiredFilesAsync((string directoryPath, string fileName)? protokollbogenData,
         string sourceFolderPath,
         string targetFolderPath, string homeFolder, bool isAllgemeinerChecked, bool isVorschuleChecked,
-        bool isProtokollbogenChecked)
+        bool isProtokollbogenChecked, bool isKrippeUebergangsChecked)
     {
         if (_fileManager == null) throw new InvalidOperationException("_fileManager has not been initialized.");
 
@@ -350,19 +355,30 @@ public partial class MainWindow
             await FileManagerHelper.CopyFilesFromSourceToTargetAsync(vorschuleFilePath, targetFolderPath,
                 Path.GetFileName(vorschuleFilePath));
         else if (!File.Exists(vorschuleFilePath))
-            LogMessage($"File 'Vorschule-Entwicklungsbericht.pdf' not found at {vorschuleFilePath}.",
+            LogMessage($"Datei 'Vorschule-Entwicklungsbericht.pdf' wurde nicht in {vorschuleFilePath} gefunden.",
                 LogLevel.Warning);
 
-        var protokollElterngespraechFilePath =
+        var protokollElterngespraechPath =
             Path.Combine(homeFolder, "Entwicklungsboegen", "Protokoll-Elterngespraech.pdf");
 
-        if (File.Exists(protokollElterngespraechFilePath))
-            await FileManagerHelper.CopyFilesFromSourceToTargetAsync(protokollElterngespraechFilePath, targetFolderPath,
-                Path.GetFileName(protokollElterngespraechFilePath));
+        if (File.Exists(protokollElterngespraechPath))
+            await FileManagerHelper.CopyFilesFromSourceToTargetAsync(protokollElterngespraechPath, targetFolderPath,
+                Path.GetFileName(protokollElterngespraechPath));
         else
             LogMessage(
-                $"File 'Protokoll-Elterngespraech.pdf' not found at {protokollElterngespraechFilePath}.",
+                $"Datei 'Protokoll-Elterngespraech.pdf' wurde nicht in {protokollElterngespraechPath} gefunden.",
                 LogLevel.Warning);
+
+        var krippeÜbergangsberichtPath = 
+            Path.Combine(homeFolder, "Entwicklungsboegen", "Krippe-Uebergangsbericht.pdf");
+
+        if (isKrippeUebergangsChecked && File.Exists(krippeÜbergangsberichtPath))
+            await FileManagerHelper.CopyFilesFromSourceToTargetAsync(krippeÜbergangsberichtPath, targetFolderPath,
+                Path.GetFileName(krippeÜbergangsberichtPath));
+        else if (!File.Exists(krippeÜbergangsberichtPath))
+            LogMessage($"Datei 'Krippe-Uebergangsbericht.pdf' wurde nicht in {krippeÜbergangsberichtPath} gefunden.",
+                LogLevel.Warning);
+
     }
 
     private async Task PerformFileOperationsAsync()
@@ -429,29 +445,33 @@ public partial class MainWindow
         var isAllgemeinerChecked = AllgemeinerEntwicklungsberichtCheckbox.IsChecked == true;
         var isVorschuleChecked = VorschulentwicklungsberichtCheckbox.IsChecked == true;
         var isProtokollbogenChecked = ProtokollbogenAutoCheckbox.IsChecked == true;
+        var isKrippeUebergangsberichtChecked = KrippeUebergangsberichtCheckbox.IsChecked == true;
+
 
         await CopyRequiredFilesAsync(protokollbogenData, sourceFolderPath, targetFolderPath, HomeFolder!,
             isAllgemeinerChecked,
-            isVorschuleChecked, isProtokollbogenChecked);
+            isVorschuleChecked, isProtokollbogenChecked, isKrippeUebergangsberichtChecked);
 
         var numericProtokollNumber = ExtractProtocolNumberFromData(protokollbogenData) ?? string.Empty;
 
         var (renamedProtokollbogenPath, renamedAllgemeinEntwicklungsberichtPath, renamedProtokollElterngespraechPath,
-            renamedVorschuleEntwicklungsberichtPath) = await FileManagerHelper.RenameFilesInTargetDirectoryAsync(
+            renamedVorschuleEntwicklungsberichtPath, renamedKrippeUebergangsberichtPath) = await FileManagerHelper.RenameFilesInTargetDirectoryAsync(
             targetFolderPath,
             kidName, reportMonth, reportYear.ToString(), isAllgemeinerChecked, isVorschuleChecked,
-            isProtokollbogenChecked, numericProtokollNumber);
+            isProtokollbogenChecked, isKrippeUebergangsberichtChecked, numericProtokollNumber);
+
 
         if (string.IsNullOrEmpty(parsedBirthDate))
         {
             LogAndShowMessage("Geburtsdatum konnte nicht extrahiert werden.",
-                "Error extracting birth date.");
+                "Fehler beim Extrahieren des Geburtsdatums.");
             return;
         }
 
         await FillPdfDocumentsAsync(renamedProtokollbogenPath, renamedAllgemeinEntwicklungsberichtPath,
-            renamedProtokollElterngespraechPath, renamedVorschuleEntwicklungsberichtPath, kidName, months, group,
-            parsedBirthDate, genderValue);
+            renamedProtokollElterngespraechPath, renamedVorschuleEntwicklungsberichtPath, renamedKrippeUebergangsberichtPath,
+            kidName, months, group, parsedBirthDate, genderValue);
+
         if (OperationState.OperationsSuccessful)
             ShowMessage("Dateien erfolgreich kopiert und umbenannt.");
     }

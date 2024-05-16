@@ -44,7 +44,7 @@ public static class ValidationHelper
             if (monthsAndDays >= start && monthsAndDays <= end)
                 return value;
 
-        LogAndShowMessage($"No Protokollbogen for Month value found: {monthsAndDays}",
+        LogAndShowMessage($"Kein Protokollbogen für Monatswert gefunden: {monthsAndDays}",
             $"Kein Protokollbogen für folgenden Monatswert gefunden: {monthsAndDays}",
             LogLevel.Warning);
         MainWindow.OperationState.OperationsSuccessful = false;
@@ -61,7 +61,7 @@ public static class ValidationHelper
     {
         if (string.IsNullOrWhiteSpace(kidName))
         {
-            LogAndShowMessage("Kid name is empty or whitespace.",
+            LogAndShowMessage("Der Name des Kindes ist leer oder mit Leerzeichen versehen.",
                 "Bitte geben Sie den Namen eines Kindes an.");
             return null;
         }
@@ -72,7 +72,7 @@ public static class ValidationHelper
 
         if (!Directory.Exists(groupPath))
         {
-            LogAndShowMessage($"Group path does not exist: {groupPath}",
+            LogAndShowMessage($"Gruppenpfad existiert nicht: {groupPath}",
                 $"Der Pfad für den Gruppenordner {groupFolder} ist nicht zugänglich. Bitte überprüfen Sie den Pfad und versuchen Sie es erneut.");
             return null;
         }
@@ -82,7 +82,7 @@ public static class ValidationHelper
             dir.Split(Path.DirectorySeparatorChar).Last().Equals(kidName, StringComparison.OrdinalIgnoreCase));
 
         if (kidNameExists) return kidName;
-        LogAndShowMessage($"Kid name not found in group directory: {kidName}",
+        LogAndShowMessage($"Name des Kindes nicht im Gruppenverzeichnis gefunden: {kidName}",
             "Der Name des Kindes wurde im Gruppenverzeichnis nicht gefunden. Bitte geben Sie einen gültigen Namen an.");
         return null;
     }

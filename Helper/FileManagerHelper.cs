@@ -39,32 +39,33 @@ public partial class FileManagerHelper
             {
                 var result = ShowMessage("Die Datei existiert bereits. Möchtest du diese ersetzen?",
                     MessageType.Info,
-                    "Confirm Replace",
+                    "Ersetzen bestätigen",
                     MessageBoxButton.YesNo);
 
                 if (result == MessageBoxResult.No) return;
+                LogMessage($"Lösche vorhandene Datei: {destFile}", LogLevel.Info);
                 await Task.Run(() => File.Delete(destFile));
             }
 
             await Task.Run(() => File.Move(sourceFile, destFile));
+
         }
         catch (Exception ex)
         {
-            LogAndShowMessage($"Fehler beim Umbenennen der Datei: {ex.Message}",
-                "Fehler beim Umbenennen der Datei", LogLevel.Error, MessageType.Error);
+            LogMessage($"Fehler beim Umbenennen der Datei: {ex.Message}", LogLevel.Error);
         }
     }
 
-
-    public static async Task<Tuple<string, string, string, string>> RenameFilesInTargetDirectoryAsync(
+    public static async Task<Tuple<string, string, string, string, string>> RenameFilesInTargetDirectoryAsync(
         string targetFolderPath,
         string kidName, string reportMonth, string reportYear, bool isAllgemeinerChecked, bool isVorschuleChecked,
-        bool isProtokollbogenChecked, string protokollNumber)
+        bool isProtokollbogenChecked, bool isKrippeUebergangsberichtChecked, string protokollNumber)
     {
         string? renamedProtokollbogenPath = null;
         string? renamedAllgemeinEntwicklungsberichtPath = null;
         string? renamedProtokollElterngespraechPath = null;
         string? renamedVorschuleEntwicklungsberichtPath = null;
+        string? renamedKrippeUebergangsberichtPath = null;
         kidName = StringUtilities.ConvertToTitleCase(kidName);
         kidName = StringUtilities.ConvertSpecialCharacters(kidName, StringUtilities.ConversionType.Umlaute,
             StringUtilities.ConversionType.Underscore);
@@ -74,16 +75,18 @@ public partial class FileManagerHelper
             StringUtilities.ConversionType.Underscore);
         if (!int.TryParse(ProtokollNumberRegex().Match(protokollNumber).Value, out _))
         {
-            LogMessage($"Failed to extract numeric value from protokollNumber: {protokollNumber}",
+            LogMessage($"Extraktion eines numerischen Wertes aus protokollNumber fehlgeschlagen: {protokollNumber}",
                 LogLevel.Error);
-            return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty,
+            return new Tuple<string, string, string, string, string>(renamedProtokollbogenPath ?? string.Empty,
                 renamedAllgemeinEntwicklungsberichtPath ?? string.Empty,
                 renamedProtokollElterngespraechPath ?? string.Empty,
-                renamedVorschuleEntwicklungsberichtPath ?? string.Empty);
+                renamedVorschuleEntwicklungsberichtPath ?? string.Empty,
+                renamedKrippeUebergangsberichtPath ?? string.Empty);
         }
 
 
         var files = await Task.Run(() => Directory.GetFiles(targetFolderPath));
+
 
         foreach (var file in files)
         {
@@ -98,17 +101,14 @@ public partial class FileManagerHelper
                 await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
                 renamedAllgemeinEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
             }
-
-            if (fileName.Equals("Vorschule-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) &&
+            else if (fileName.Equals("Vorschule-Entwicklungsbericht", StringComparison.OrdinalIgnoreCase) &&
                 isVorschuleChecked)
             {
                 var newFileName = $"{kidName}_Vorschule_Entwicklungsbericht_{reportMonth}_{reportYear}{fileExtension}";
                 await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
                 renamedVorschuleEntwicklungsberichtPath = Path.Combine(targetFolderPath, newFileName);
             }
-
-
-            if (fileName.StartsWith("Kind_Protokollbogen_", StringComparison.OrdinalIgnoreCase) &&
+            else if (fileName.StartsWith("Kind_Protokollbogen_", StringComparison.OrdinalIgnoreCase) &&
                 isProtokollbogenChecked)
             {
                 var newFileName =
@@ -116,19 +116,27 @@ public partial class FileManagerHelper
                 await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
                 renamedProtokollbogenPath = Path.Combine(targetFolderPath, newFileName);
             }
-
-            if (!fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase)) continue;
+            else if (fileName.Equals("Protokoll-Elterngespraech", StringComparison.OrdinalIgnoreCase))
             {
                 var newFileName = $"{kidName}_Protokoll_Elterngespraech_{reportMonth}_{reportYear}{fileExtension}";
                 await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
                 renamedProtokollElterngespraechPath = Path.Combine(targetFolderPath, newFileName);
             }
+
+            else if (fileName.StartsWith("Krippe-Uebergangsbericht", StringComparison.OrdinalIgnoreCase) &&
+                isKrippeUebergangsberichtChecked)
+            {
+                var newFileName = $"{kidName}_Krippe_Uebergangsbericht_{reportMonth}_{reportYear}{fileExtension}";
+                await SafeRenameFileAsync(file, Path.Combine(targetFolderPath, newFileName));
+                renamedKrippeUebergangsberichtPath = Path.Combine(targetFolderPath, newFileName);
+            }
         }
 
-        return new Tuple<string, string, string, string>(renamedProtokollbogenPath ?? string.Empty,
+        return new Tuple<string, string, string, string, string>(renamedProtokollbogenPath ?? string.Empty,
             renamedAllgemeinEntwicklungsberichtPath ?? string.Empty,
             renamedProtokollElterngespraechPath ?? string.Empty,
-            renamedVorschuleEntwicklungsberichtPath ?? string.Empty);
+            renamedVorschuleEntwicklungsberichtPath ?? string.Empty,
+            renamedKrippeUebergangsberichtPath ?? string.Empty);
     }
 
     public static async Task CopyFilesFromSourceToTargetAsync(string? sourceFile, string targetFolderPath,
@@ -145,11 +153,11 @@ public partial class FileManagerHelper
             catch (Exception ex)
             {
                 LogMessage(
-                    $"Error copying file. Source: {sourceFile}, Destination: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Error: {ex.Message}",
+                    $"Fehler beim Kopieren der Datei. Quelle: {sourceFile}, Zielort: {Path.Combine(targetFolderPath, protokollbogenFileName)}. Error: {ex.Message}",
                     LogLevel.Error);
             }
         else
-            LogMessage($"File {protokollbogenFileName} not found in source folder.", LogLevel.Warning);
+            LogMessage($"File {protokollbogenFileName} nicht im Quellordner gefunden.", LogLevel.Warning);
     }
 
 

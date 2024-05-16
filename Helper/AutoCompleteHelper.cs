@@ -198,7 +198,7 @@ public class AutoCompleteHelper
         }
         else
         {
-            LogMessage("No valid group selected.", LogLevel.Warning);
+            LogMessage("Keine gültige Gruppe gewählt.", LogLevel.Warning);
         }
     }
 
@@ -227,7 +227,7 @@ public class AutoCompleteHelper
             return directories.Select(Path.GetFileName).OfType<string>().ToList();
         }
 
-        LogMessage("_homeFolder is not set.", LogLevel.Warning);
+        LogMessage("_homeFolder ist nicht festgelegt.", LogLevel.Warning);
         return new List<string>();
     }
 }

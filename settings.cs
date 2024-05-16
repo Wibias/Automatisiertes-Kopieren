@@ -19,7 +19,7 @@ public class Settings
         init
         {
             if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException("HomeFolderPath cannot be null or whitespace.");
+                throw new ArgumentException("Hauptverzeichnis kann nicht null oder ein Leerzeichen sein.");
 
             _homeFolderPath = value;
         }
@@ -33,7 +33,7 @@ public class Settings
             var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "Automatisiertes_Kopieren", "settings.json");
 
-            LogMessage($"Attempting to save settings to: {path}", LogLevel.Warning);
+            LogMessage($"Versuche Einstellung hier zu speichern: {path}", LogLevel.Warning);
 
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await File.WriteAllTextAsync(path, json);
@@ -42,7 +42,7 @@ public class Settings
         }
         catch (Exception ex)
         {
-            LogMessage($"Error saving settings: {ex.Message}", LogLevel.Warning);
+            LogMessage($"Fehler beim Speichern von Einstellungen: {ex.Message}", LogLevel.Warning);
         }
     }
 
