@@ -28,7 +28,7 @@ public static class PdfHelper
             using var pdfDoc = new PdfDocument(new PdfReader(pdfPath), new PdfWriter(pdfPath + ".temp"));
 
             var form = PdfAcroForm.GetAcroForm(pdfDoc, true) ??
-                       throw new Exception("The PDF does not contain any form fields.");
+                       throw new Exception("Das PDF enthält keine Formularfelder.");
 
             switch (pdfType)
             {

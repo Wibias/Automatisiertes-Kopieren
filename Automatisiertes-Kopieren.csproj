@@ -9,7 +9,7 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\Icons\automatisiertes-kopieren.ico</ApplicationIcon>
-	  <Version>1.1.4</Version>
+	  <Version>1.1.5</Version>
 	  
   </PropertyGroup>
 

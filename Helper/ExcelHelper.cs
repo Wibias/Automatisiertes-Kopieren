@@ -128,7 +128,7 @@ public class ExcelHelper
                     extractedMonths, null, parsedBirthDate, genderValue));
 
             LogAndShowMessage($"Es konnte kein gültiger Monatswert für {kidFirstName} {kidLastName} extrahiert werden.",
-                "Please correct the name.");
+                "Bitte korrigieren Sie den Namen.");
             return Task.FromResult<(double? months, string? error, string? parsedBirthDate, string? gender)>((null,
                 "Extraktions Fehler", parsedBirthDate, genderValue));
         }

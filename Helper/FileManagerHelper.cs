@@ -43,7 +43,6 @@ public partial class FileManagerHelper
                     MessageBoxButton.YesNo);
 
                 if (result == MessageBoxResult.No) return;
-                LogMessage($"Lösche vorhandene Datei: {destFile}", LogLevel.Info);
                 await Task.Run(() => File.Delete(destFile));
             }
 
