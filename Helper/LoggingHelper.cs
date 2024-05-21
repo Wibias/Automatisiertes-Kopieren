@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.IO;
 using System.Windows;
-using Serilog;
 
 namespace Automatisiertes_Kopieren.Helper;
 
@@ -37,6 +37,13 @@ public static class LoggingHelper
     {
         LogMessage(logMessage, logLevel);
         ShowMessage(userMessage, messageType, title);
+    }
+
+    public static void LogException(Exception ex, string message, LogLevel logLevel = LogLevel.Error)
+    {
+        LogMessage(message, logLevel, ex);
+
+        ShowMessage(message, MessageType.Error);
     }
 
     public static void LogMessage(string message, LogLevel level = LogLevel.Info, Exception? exception = null)

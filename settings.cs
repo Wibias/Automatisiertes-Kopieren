@@ -1,57 +1,53 @@
-﻿using System;
-using System.Globalization;
+﻿using Newtonsoft.Json;
+using System;
 using System.IO;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using static Automatisiertes_Kopieren.Helper.LoggingHelper;
 
-namespace Automatisiertes_Kopieren;
-
-public class Settings
+namespace Automatisiertes_Kopieren
 {
-    private readonly string? _homeFolderPath;
-
-    private string PreferredLanguage { get; set; } = CultureInfo.InstalledUICulture.Name;
-
-    public string? HomeFolderPath
+    public class Settings
     {
-        get => _homeFolderPath;
-        init
+        public string? HomeFolderPath { get; init; }
+
+        public static async Task SaveSettingsAsync(Settings settings)
         {
-            if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException("Hauptverzeichnis kann nicht null oder ein Leerzeichen sein.");
+            try
+            {
+                var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+                var directoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Automatisiertes_Kopieren");
+                var path = Path.Combine(directoryPath, "settings.json");
 
-            _homeFolderPath = value;
+                LogMessage($"Versuche Einstellung hier zu speichern: {path }", LogLevel.Warning);
+
+                Directory.CreateDirectory(directoryPath );
+                await File.WriteAllTextAsync(directoryPath, json);
+
+                LogMessage("Settings saved successfully.");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Fehler beim Speichern von Einstellungen: {ex.Message}", LogLevel.Warning);
+            }
         }
-    }
 
-    public static async Task SaveSettingsAsync(Settings settings)
-    {
-        try
+        public static Settings? LoadSettings()
         {
-            var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "Automatisiertes_Kopieren", "settings.json");
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Automatisiertes_Kopieren", "settings.json");
 
-            LogMessage($"Versuche Einstellung hier zu speichern: {path}", LogLevel.Warning);
+            if (!File.Exists(path)) return new Settings();
 
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            await File.WriteAllTextAsync(path, json);
+            try
+            {
+                var json = File.ReadAllText(path);
+                return JsonConvert.DeserializeObject<Settings>(json);
 
-            LogMessage("Settings saved successfully.");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error while loading settings: {ex.Message}", LogLevel.Warning);
+                return null;
+            }
         }
-        catch (Exception ex)
-        {
-            LogMessage($"Fehler beim Speichern von Einstellungen: {ex.Message}", LogLevel.Warning);
-        }
-    }
-
-    public static Settings? LoadSettings()
-    {
-        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Automatisiertes_Kopieren", "settings.json");
-        if (!File.Exists(path)) return new Settings();
-        var json = File.ReadAllText(path);
-        return JsonConvert.DeserializeObject<Settings>(json);
     }
 }

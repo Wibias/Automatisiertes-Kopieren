@@ -1,35 +1,53 @@
-﻿using System;
+﻿using iText.Forms;
+using iText.Kernel.Pdf;
+using System;
 using System.IO;
 using System.Threading.Tasks;
-using iText.Forms;
-using iText.Kernel.Pdf;
 using static Automatisiertes_Kopieren.Helper.LoggingHelper;
 
-namespace Automatisiertes_Kopieren.Helper;
-
-public static class PdfHelper
+namespace Automatisiertes_Kopieren.Helper
 {
-    public enum PdfType
+    public static class PdfHelper
     {
-        Protokollbogen,
-        AllgemeinEntwicklungsbericht,
-        ProtokollElterngespraech,
-        VorschuleEntwicklungsbericht,
-        KrippeUebergangsbericht
-    }
-
-    public static async Task FillPdfAsync(string pdfPath, string kidName, double monthsValue, string group,
-        PdfType pdfType,
-        string parsedBirthDate, string? genderValue)
-    {
-        try
+        public enum PdfType
         {
+            Protokollbogen,
+            AllgemeinEntwicklungsbericht,
+            ProtokollElterngespraech,
+            VorschuleEntwicklungsbericht,
+            KrippeUebergangsbericht
+        }
 
-            using var pdfDoc = new PdfDocument(new PdfReader(pdfPath), new PdfWriter(pdfPath + ".temp"));
+        public static async Task FillPdfAsync(string pdfPath, string kidName, double monthsValue, string group,
+            PdfType pdfType, string parsedBirthDate, string? genderValue)
+        {
+            string tempPath = pdfPath + ".temp";
 
-            var form = PdfAcroForm.GetAcroForm(pdfDoc, true) ??
-                       throw new Exception("Das PDF enthält keine Formularfelder.");
+            try
+            {
+                using (var pdfDoc = new PdfDocument(new PdfReader(pdfPath), new PdfWriter(tempPath)))
+                {
+                    var form = PdfAcroForm.GetAcroForm(pdfDoc, true) ??
+                               throw new Exception("Das PDF enthält keine Formularfelder.");
 
+                    FillPdfForm(form, pdfType, kidName, monthsValue, group, parsedBirthDate, genderValue);
+
+                    pdfDoc.Close();
+                }
+
+                await ReplaceOriginalFileAsync(pdfPath, tempPath).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                LogException(ex, $"Fehler in FillPdfAsync aufgetreten. {ex.Message}");
+                await CleanupTempFileAsync(tempPath).ConfigureAwait(false);
+
+            }
+        }
+
+        private static void FillPdfForm(PdfAcroForm form, PdfType pdfType, string kidName, double monthsValue, string group,
+            string parsedBirthDate, string? genderValue)
+        {
             switch (pdfType)
             {
                 case PdfType.Protokollbogen:
@@ -39,18 +57,8 @@ public static class PdfHelper
                     form.GetField("Heutiges_Datum").SetValue(DateTime.Now.ToString("dd.MM.yyyy"));
                     form.GetField("Geburtsdatum").SetValue(parsedBirthDate);
 
-                    switch (genderValue)
-                    {
-                        case "Männlich":
-                            form.GetField("männlich").SetValue("On");
-                            form.GetField("weiblich").SetValue("Off");
-                            break;
-                        case "Weiblich":
-                            form.GetField("weiblich").SetValue("On");
-                            form.GetField("männlich").SetValue("Off");
-                            break;
-                    }
-
+                    form.GetField("männlich").SetValue(genderValue == "Männlich" ? "On" : "Off");
+                    form.GetField("weiblich").SetValue(genderValue == "Weiblich" ? "On" : "Off");
                     break;
 
                 case PdfType.AllgemeinEntwicklungsbericht:
@@ -64,37 +72,61 @@ public static class PdfHelper
                     form.GetField("Name des Kindes").SetValue(kidName);
                     form.GetField("Geburtsdatum").SetValue(parsedBirthDate);
                     break;
+
                 case PdfType.VorschuleEntwicklungsbericht:
                     form.GetField("Name des Kindes").SetValue(kidName);
                     form.GetField("Datum").SetValue(DateTime.Now.ToString("dd.MM.yyyy"));
                     form.GetField("Gruppe").SetValue(group);
                     break;
+
                 case PdfType.KrippeUebergangsbericht:
                     form.GetField("Name des Kindes").SetValue(kidName);
                     form.GetField("Datum").SetValue(DateTime.Now.ToString("dd.MM.yyyy"));
-
                     break;
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(pdfType), pdfType, null);
             }
-
-            pdfDoc.Close();
-
-        }
-        catch (Exception ex)
-        {
-            LogMessage(
-                $"Fehler in FillPdf aufgetreten. Meldung: {ex.Message}. StackTrace: {ex.StackTrace}", LogLevel.Error);
         }
 
-        try
+        private static async Task ReplaceOriginalFileAsync(string originalPath, string tempPath)
         {
-            await Task.Run(() => File.Delete(pdfPath));
-            await Task.Run(() => File.Move(pdfPath + ".temp", pdfPath));
+            try
+            {
+                if (File.Exists(originalPath))
+                {
+                    using (var sourceStream = new FileStream(originalPath, FileMode.Truncate))
+                    using (var destinationStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read))
+                    {
+                        await destinationStream.CopyToAsync(sourceStream).ConfigureAwait(false);
+                    }
+                }
+
+                await Task.Run(() => File.Delete(tempPath)).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                LogException(ex, $"Fehler beim Ersetzen der temporären Datei. {ex.Message}");
+                await CleanupTempFileAsync(tempPath).ConfigureAwait(false);
+            }
         }
-        catch (Exception ex)
+
+        private static async Task CleanupTempFileAsync(string tempPath)
         {
-            LogMessage($"Fehler beim Ersetzen der temporären Datei: {ex.Message}. StackTrace: {ex.StackTrace}", LogLevel.Error);
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    using (var fileStream = new FileStream(tempPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous | FileOptions.DeleteOnClose))
+                    {
+                        await fileStream.FlushAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogException(ex, $"Fehler beim Löschen der temporären Datei. {ex.Message}");
+            }
         }
-    }
+     }
 }

@@ -1,4 +1,8 @@
-﻿using System;
+﻿using Automatisiertes_Kopieren.Helper;
+using AutoUpdaterDotNET;
+using Ookii.Dialogs.Wpf;
+using Serilog;
+using System;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -6,13 +10,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Automatisiertes_Kopieren.Helper;
-using AutoUpdaterDotNET;
-using Ookii.Dialogs.Wpf;
-using Serilog;
 using static Automatisiertes_Kopieren.Helper.FileManagerHelper.StringUtilities;
-using static Automatisiertes_Kopieren.Helper.PdfHelper;
 using static Automatisiertes_Kopieren.Helper.LoggingHelper;
+using static Automatisiertes_Kopieren.Helper.PdfHelper;
 using Size = System.Drawing.Size;
 
 namespace Automatisiertes_Kopieren;
@@ -87,7 +87,7 @@ public partial class MainWindow
             ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
     }
 
-    private async void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
+    private async Task OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrEmpty(KidNameComboBox.Text))
         {
@@ -369,7 +369,7 @@ public partial class MainWindow
                 $"Datei 'Protokoll-Elterngespraech.pdf' wurde nicht in {protokollElterngespraechPath} gefunden.",
                 LogLevel.Warning);
 
-        var krippeÜbergangsberichtPath = 
+        var krippeÜbergangsberichtPath =
             Path.Combine(homeFolder, "Entwicklungsboegen", "Krippe-Uebergangsbericht.pdf");
 
         if (isKrippeUebergangsChecked && File.Exists(krippeÜbergangsberichtPath))
@@ -417,7 +417,7 @@ public partial class MainWindow
         if (months.HasValue)
         {
             var formattedMonthsAndDays = ValidationHelper.ConvertToDecimalFormat(months.Value);
-            var protokollbogenResult = ValidationHelper.DetermineProtokollbogen(formattedMonthsAndDays);
+            var protokollbogenResult = ValidationHelper.FindProtokollbogenForMonths(formattedMonthsAndDays);
             if (protokollbogenResult.HasValue)
             {
                 protokollbogenData = protokollbogenResult;
