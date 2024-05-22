@@ -329,13 +329,13 @@
                     HorizontalAlignment="Left" VerticalAlignment="Center"
                     Grid.ColumnSpan="2" Orientation="Horizontal" 
                     Margin="15,0,10,5">
-            <TextBlock Text="Heutiges Datum für Entwicklungsbericht" 
-                       VerticalAlignment="Center" 
+            <TextBlock Text="Heutiges Datum für Entwicklungsbericht"
+                       VerticalAlignment="Center"
                        Margin="0,0,10,0"/>
-            <CheckBox x:Name="UpdateMonatsrechnerCheckBox" 
+            <CheckBox x:Name="UpdateMonatsrechnerCheckBox"
 
 
-                      Click="OnSelectHeutigesDatumEntwicklungsBericht"  
+                      Click="OnSelectHeutigesDatumEntwicklungsBericht"
                       VerticalAlignment="Center"/>
         </StackPanel>
             
