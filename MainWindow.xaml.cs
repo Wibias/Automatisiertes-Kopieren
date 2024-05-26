@@ -87,7 +87,7 @@ public partial class MainWindow
             ShowMessage("Bitte wählen Sie zunächst das Hauptverzeichnis aus.", MessageType.Error);
     }
 
-    private async Task OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
+    private async void OnSelectHeutigesDatumEntwicklungsBericht(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrEmpty(KidNameComboBox.Text))
         {
